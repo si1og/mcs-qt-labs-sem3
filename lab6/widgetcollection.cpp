@@ -30,11 +30,13 @@ void WidgetCollection::setupUI() {
     QPushButton* addButton = new QPushButton("Добавить виджет", this);
     QPushButton* connectButton = new QPushButton("Соединить все", this);
     QPushButton* printButton = new QPushButton("Напечатать связи", this);
+    QPushButton* debugButton = new QPushButton("Отладка", this);
 
     controlLayout->addWidget(typeSelector);
     controlLayout->addWidget(addButton);
     controlLayout->addWidget(connectButton);
     controlLayout->addWidget(printButton);
+    controlLayout->addWidget(debugButton);
 
     mainLayout->addLayout(controlLayout);
 
@@ -46,6 +48,7 @@ void WidgetCollection::setupUI() {
     connect(addButton, &QPushButton::clicked, this, &WidgetCollection::addWidget);
     connect(connectButton, &QPushButton::clicked, this, &WidgetCollection::connectAll);
     connect(printButton, &QPushButton::clicked, this, &WidgetCollection::printConnections);
+    connect(debugButton, &QPushButton::clicked, this, &WidgetCollection::debugConnections);
 
     setWindowTitle("Lab6 - widgets collection");
     resize(600, 400);
@@ -387,5 +390,99 @@ void WidgetCollection::printConnections() {
 }
 
 void WidgetCollection::debugConnections() {
-    printConnections();
+    qDebug() << "\n========== ОТЛАДКА СОЕДИНЕНИЙ ==========";
+    qDebug() << "Всего виджетов:" << widgets.size();
+    qDebug() << "Всего записанных соединений:" << activeConnections.size();
+
+    qDebug() << "\n--- Проверка дубликатов ---";
+    int duplicatesCount = 0;
+
+    for (size_t i = 0; i < activeConnections.size(); i++) {
+        for (size_t j = i + 1; j < activeConnections.size(); j++) {
+            if (activeConnections[i].sender == activeConnections[j].sender &&
+                activeConnections[i].receiver == activeConnections[j].receiver) {
+
+                QString senderName = activeConnections[i].sender->property("widgetName").toString();
+                QString receiverName = activeConnections[i].receiver->property("widgetName").toString();
+                qDebug() << "  ДУБЛИКАТ:" << senderName << "->" << receiverName;
+                duplicatesCount++;
+            }
+        }
+    }
+
+    if (duplicatesCount == 0) {
+        qDebug() << "  дубликатов не найдено";
+    } else {
+        qDebug() << "  найдено дубликатов:" << duplicatesCount;
+    }
+
+    qDebug() << "\n--- проверка висячих соединений ---";
+    int danglingCount = 0;
+
+    for (const Connection& conn : activeConnections) {
+        bool senderExists = std::find(widgets.begin(), widgets.end(), conn.sender) != widgets.end();
+        bool receiverExists = std::find(widgets.begin(), widgets.end(), conn.receiver) != widgets.end();
+
+        if (!senderExists || !receiverExists) {
+            QString senderName = conn.sender->property("widgetName").toString();
+            QString receiverName = conn.receiver->property("widgetName").toString();
+            qDebug() << "  «висячее» соединение:" << senderName << "->" << receiverName;
+
+            if (!senderExists) qDebug() << "    sender не найден в коллекции";
+            if (!receiverExists) qDebug() << "    receiver не найден в коллекции";
+
+            danglingCount++;
+        }
+    }
+
+    if (danglingCount == 0) {
+        qDebug() << "  висячих соединений не найдено";
+    } else {
+        qDebug() << "  найдено висячих соединений:" << danglingCount;
+    }
+
+    qDebug() << "\n--- проверка виджетов без родителя ---";
+    int orphanCount = 0;
+
+    for (QWidget* widget : widgets) {
+        if (!widget->parent()) {
+            QString name = widget->property("widgetName").toString();
+            qDebug() << name << "не имеет родителя";
+            orphanCount++;
+        }
+    }
+
+    if (orphanCount == 0) {
+        qDebug() << "  все виджеты имеют родителя";
+    } else {
+        qDebug() << "  виджетов без родителя:" << orphanCount;
+    }
+
+    qDebug() << "\n--- статистика по чекбоксам ---";
+    std::vector<QWidget*> checked = getCheckedWidgets();
+    qDebug() << "  выделено виджетов:" << checked.size();
+
+    std::vector<QWidget*> connectedWidgets;
+    for (const Connection& conn : activeConnections) {
+        if (std::find(connectedWidgets.begin(), connectedWidgets.end(), conn.sender) == connectedWidgets.end()) {
+            connectedWidgets.push_back(conn.sender);
+        }
+        if (std::find(connectedWidgets.begin(), connectedWidgets.end(), conn.receiver) == connectedWidgets.end()) {
+            connectedWidgets.push_back(conn.receiver);
+        }
+    }
+    qDebug() << "  виджетов в соединениях:" << connectedWidgets.size();
+
+    qDebug() << "\n--- список соединений ---";
+    if (activeConnections.empty()) {
+        qDebug() << "  (пусто)";
+    } else {
+        for (const Connection& conn : activeConnections) {
+            QString senderName = conn.sender->property("widgetName").toString();
+            QString receiverName = conn.receiver->property("widgetName").toString();
+            qDebug().noquote() << "  " << senderName << "->" << receiverName;
+        }
+    }
+
+    qDebug() << "\n=========================================\n";
 }
