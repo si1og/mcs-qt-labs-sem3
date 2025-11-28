@@ -27,6 +27,9 @@ void ShapesCollection::setupUI() {
 
     mainLayout->addLayout(controlLayout);
 
+    m_canvas = new ShapeCanvas(this);
+    mainLayout->addWidget(m_canvas, 1);
+
     m_statusBar = new QStatusBar(this);
 
     m_coordsLabel = new QLabel("Координаты: —");
@@ -38,9 +41,6 @@ void ShapesCollection::setupUI() {
     m_statusBar->addWidget(m_sizeLabel, 1);
 
     mainLayout->addWidget(m_statusBar);
-
-    m_canvas = new ShapeCanvas(this);
-    mainLayout->addWidget(m_canvas, 1);
 
     connect(addButton, &QPushButton::clicked, this, [this]() {
         Shape::Type type = static_cast<Shape::Type>(
@@ -56,7 +56,7 @@ void ShapesCollection::setupUI() {
     connect(m_canvas, &ShapeCanvas::activeShapeChanged,
             this, &ShapesCollection::updateStatusBar);
 
-    setWindowTitle("Lab3 - Shapes Collection (7.1)");
+    setWindowTitle("Lab7 - Shapes Collection (7.1)");
     resize(600, 500);
 }
 

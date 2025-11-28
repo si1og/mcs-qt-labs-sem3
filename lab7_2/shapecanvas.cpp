@@ -9,7 +9,12 @@ ShapeCanvas::ShapeCanvas(QWidget* parent) : QGraphicsView(parent) {
 
     setRenderHint(QPainter::Antialiasing);
     setMinimumSize(400, 300);
-    setBackgroundBrush(Qt::white);
+    setBackgroundBrush(Qt::transparent);
+
+    viewport()->setAutoFillBackground(false);
+    setStyleSheet("background: transparent;");
+
+    setFrameShape(QFrame::NoFrame);
 }
 
 void ShapeCanvas::addShape(::Shape::Type type) {

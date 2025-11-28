@@ -56,7 +56,7 @@ void ShapesCollection::setupUI() {
     connect(m_canvas, &ShapeCanvas::activeShapeChanged,
             this, &ShapesCollection::updateStatusBar);
 
-    setWindowTitle("Lab3 - Shapes Collection (7.2 GraphicsView)");
+    setWindowTitle("Lab7 - Shapes Collection (7.2 GraphicsView)");
     resize(600, 500);
 }
 
