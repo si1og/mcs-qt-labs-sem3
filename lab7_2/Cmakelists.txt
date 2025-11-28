@@ -1,0 +1,52 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(lab7 VERSION 1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+
+find_package(Qt6 COMPONENTS Core Gui Widgets QUIET)
+if (NOT Qt6_FOUND)
+    find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
+endif()
+
+set(SOURCES
+    main.cpp
+    shapescollection.cpp
+    shapes.cpp
+    shapecanvas.cpp
+)
+
+set(HEADERS
+    shapescollection.h
+    shapes.h
+    shapescollection.h
+)
+
+add_executable(main
+    ${SOURCES}
+    ${HEADERS}
+)
+
+if (Qt6_FOUND)
+    target_link_libraries(main PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Widgets
+    )
+else()
+    target_link_libraries(main PRIVATE
+        Qt5::Core
+        Qt5::Gui
+        Qt5::Widgets
+    )
+endif()
+
+install(TARGETS main
+    BUNDLE DESTINATION .
+    RUNTIME DESTINATION bin
+)

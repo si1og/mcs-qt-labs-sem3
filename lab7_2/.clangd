@@ -1,0 +1,13 @@
+CompileFlags:
+  Add:
+    - -xc++
+    - -std=c++17
+    - -I/opt/homebrew/Cellar/qt/6.9.3/lib/QtCore.framework/Headers
+    - -I/opt/homebrew/Cellar/qt/6.9.3/lib/QtGui.framework/Headers
+    - -I/opt/homebrew/Cellar/qt/6.9.3/lib/QtWidgets.framework/Headers
+    - -F/opt/homebrew/Cellar/qt/6.9.3/lib
+    - -iframework/opt/homebrew/Cellar/qt/6.9.3/lib
+    - -DQT_WIDGETS_LIB
+    - -DQT_GUI_LIB
+    - -DQT_CORE_LIB
+  CompilationDatabase: .
