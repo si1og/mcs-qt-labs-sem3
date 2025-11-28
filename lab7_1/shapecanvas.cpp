@@ -17,9 +17,9 @@ void ShapeCanvas::addShape(Shape::Type type) {
 
     QRect rect(x, y, w, h);
 
-    QColor color(rng->bounded(50, 255),
-                 rng->bounded(50, 255),
-                 rng->bounded(50, 255));
+    QColor color(rng->bounded(50, 100),
+                 rng->bounded(50, 100),
+                 rng->bounded(50, 100));
 
     std::unique_ptr<Shape> shape;
 
@@ -41,6 +41,7 @@ void ShapeCanvas::addShape(Shape::Type type) {
 
     shape->setActive(true);
     m_activeShape = shape.get();
+    emit activeShapeChanged(m_activeShape);
 
     m_shapes.push_back(std::move(shape));
     update();
@@ -59,6 +60,7 @@ void ShapeCanvas::removeActiveShape() {
         m_activeShape = nullptr;
     }
 
+    emit activeShapeChanged(m_activeShape);
     update();
 }
 
@@ -97,6 +99,7 @@ void ShapeCanvas::mousePressEvent(QMouseEvent* event) {
             m_activeShape = nullptr;
         }
 
+        emit activeShapeChanged(m_activeShape);
         update();
     }
 }
@@ -109,6 +112,7 @@ void ShapeCanvas::mouseMoveEvent(QMouseEvent* event) {
         m_activeShape->move(delta);
         m_lastMousePos = pos;
 
+        emit activeShapeChanged(m_activeShape);
         update();
     }
 }
@@ -139,5 +143,6 @@ void ShapeCanvas::bringToFront(Shape* shape) {
         m_shapes.erase(it);
         m_shapes.push_back(std::move(temp));
         m_activeShape = m_shapes.back().get();
+        emit activeShapeChanged(m_activeShape);
     }
 }

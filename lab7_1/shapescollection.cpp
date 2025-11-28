@@ -27,6 +27,18 @@ void ShapesCollection::setupUI() {
 
     mainLayout->addLayout(controlLayout);
 
+    m_statusBar = new QStatusBar(this);
+
+    m_coordsLabel = new QLabel("Координаты: —");
+    m_colorLabel = new QLabel("Цвет: —");
+    m_sizeLabel = new QLabel("Размер: —");
+
+    m_statusBar->addWidget(m_coordsLabel, 1);
+    m_statusBar->addWidget(m_colorLabel, 1);
+    m_statusBar->addWidget(m_sizeLabel, 1);
+
+    mainLayout->addWidget(m_statusBar);
+
     m_canvas = new ShapeCanvas(this);
     mainLayout->addWidget(m_canvas, 1);
 
@@ -41,6 +53,34 @@ void ShapesCollection::setupUI() {
         m_canvas->removeActiveShape();
     });
 
+    connect(m_canvas, &ShapeCanvas::activeShapeChanged,
+            this, &ShapesCollection::updateStatusBar);
+
     setWindowTitle("Lab3 - Shapes Collection (7.1)");
     resize(600, 500);
+}
+
+void ShapesCollection::updateStatusBar(Shape* shape) {
+    if (!shape) {
+        m_coordsLabel->setText("Координаты: —");
+        m_colorLabel->setText("Цвет: —");
+        m_sizeLabel->setText("Размер: —");
+        return;
+    }
+
+    QRect rect = shape->boundingRect();
+    QColor color = shape->color();
+
+    m_coordsLabel->setText(QString("Координаты: (%1, %2)")
+        .arg(rect.x())
+        .arg(rect.y()));
+
+    m_colorLabel->setText(QString("Цвет: RGB(%1, %2, %3)")
+        .arg(color.red())
+        .arg(color.green())
+        .arg(color.blue()));
+
+    m_sizeLabel->setText(QString("Размер: %1 × %2")
+        .arg(rect.width())
+        .arg(rect.height()));
 }

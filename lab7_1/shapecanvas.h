@@ -21,6 +21,9 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
 
+signals:
+    void activeShapeChanged(Shape* shape);
+
 private:
     std::vector<std::unique_ptr<Shape>> m_shapes;
     Shape* m_activeShape = nullptr;
