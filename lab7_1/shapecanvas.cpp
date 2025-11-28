@@ -57,7 +57,12 @@ void ShapeCanvas::removeActiveShape() {
 
     if (it != m_shapes.end()) {
         m_shapes.erase(it);
-        m_activeShape = nullptr;
+        if (m_shapes.size() > 0) {
+            m_activeShape = (m_shapes.end() - 1)->get();
+            m_activeShape->setActive(true);
+        } else {
+            m_activeShape = nullptr;
+        }
     }
 
     emit activeShapeChanged(m_activeShape);

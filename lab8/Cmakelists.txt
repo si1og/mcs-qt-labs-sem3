@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(lab7 VERSION 1.0 LANGUAGES CXX)
+project(lab8 VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,15 +16,18 @@ endif()
 
 set(SOURCES
     main.cpp
-    shapescollection.cpp
-    shapes.cpp
-    shapecanvas.cpp
+    mainwindow.cpp
+    createcontact.cpp
+    phonebooktofile.cpp
+    validator.cpp
 )
 
 set(HEADERS
-    shapescollection.h
-    shapes.h
-    shapescollection.h
+    mainwindow.h
+    createcontact.h
+    phonebooktofile.h
+    validator.h
+    contact.h
 )
 
 add_executable(main
