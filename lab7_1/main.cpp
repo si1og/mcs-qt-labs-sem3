@@ -7,13 +7,13 @@
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
-#include "widgetcollection.h"
+#include "shapescollection.h"
 
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
-    WidgetCollection window;
+    ShapesCollection window;
     window.show();
 
     return app.exec();

@@ -16,11 +16,15 @@ endif()
 
 set(SOURCES
     main.cpp
-    widgetcollection.cpp
+    shapescollection.cpp
+    shapes.cpp
+    shapecanvas.cpp
 )
 
 set(HEADERS
-    widgetcollection.h
+    shapescollection.h
+    shapes.h
+    shapescollection.h
 )
 
 add_executable(main
