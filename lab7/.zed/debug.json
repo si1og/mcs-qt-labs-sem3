@@ -1,0 +1,21 @@
+[
+  {
+    "label": "Debug lab1 (LLDB)",
+    "build": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build"
+      ],
+      "cwd": "$ZED_WORKTREE_ROOT"
+    },
+    "program": "$ZED_WORKTREE_ROOT/build/main",
+    "request": "launch",
+    "adapter": "CodeLLDB",
+    "args": [],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "env": {
+      "TERM": "xterm-256color"
+    }
+  }
+]

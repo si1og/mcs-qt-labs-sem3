@@ -105,7 +105,7 @@ void WidgetCollection::addWidget() {
         connect(checkbox, &QCheckBox::toggled, this, [this, checkbox](bool checked) {
             if (checked) {
                 // Если пытаются поставить галочку, сразу убираем её
-                // checkbox->setChecked(false);
+                checkbox->setChecked(false);
             } else {
                 // Если отжимают галочку, удаляем все связи этого виджета
                 // disconnectWidget(newWidget);
