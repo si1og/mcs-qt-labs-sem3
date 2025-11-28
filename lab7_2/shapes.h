@@ -1,11 +1,12 @@
 #pragma once
 
+#include <QGraphicsItem>
 #include <QRect>
 #include <QColor>
 #include <QPainter>
 #include <QPoint>
 
-class Shape {
+class Shape : public QGraphicsItem {
 public:
     enum Type { Rectangle, Triangle, Ellipse };
 
@@ -16,12 +17,15 @@ public:
     virtual bool contains(const QPoint& point) const;
 
     void move(const QPoint& delta);
-    void setActive(bool active) { m_active = active; }
+    void setActive(bool active) { m_active = active; update(); }
     bool isActive() const { return m_active; }
 
-    QRect boundingRect() const { return m_rect; }
-    Type type() const { return m_type; }
+    QRect rect() const { return m_rect; }
+    Type shapeType() const { return m_type; }
     QColor color() const { return m_color; }
+
+    QRectF boundingRect() const override;
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
 
 protected:
     Type m_type;
@@ -34,16 +38,21 @@ class RectangleShape : public Shape {
 public:
     RectangleShape(const QRect& rect, const QColor& color);
     void draw(QPainter& painter) const override;
+    QPainterPath shape() const override;
 };
 
 class TriangleShape : public Shape {
 public:
     TriangleShape(const QRect& rect, const QColor& color);
     void draw(QPainter& painter) const override;
+    bool contains(const QPoint& point) const override;
+    QPainterPath shape() const override;
 };
 
 class EllipseShape : public Shape {
 public:
     EllipseShape(const QRect& rect, const QColor& color);
     void draw(QPainter& painter) const override;
+    bool contains(const QPoint& point) const override;
+    QPainterPath shape() const override;
 };

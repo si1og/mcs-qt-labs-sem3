@@ -27,6 +27,9 @@ void ShapesCollection::setupUI() {
 
     mainLayout->addLayout(controlLayout);
 
+    m_canvas = new ShapeCanvas(this);
+    mainLayout->addWidget(m_canvas, 1);
+
     m_statusBar = new QStatusBar(this);
 
     m_coordsLabel = new QLabel("Координаты: —");
@@ -38,9 +41,6 @@ void ShapesCollection::setupUI() {
     m_statusBar->addWidget(m_sizeLabel, 1);
 
     mainLayout->addWidget(m_statusBar);
-
-    m_canvas = new ShapeCanvas(this);
-    mainLayout->addWidget(m_canvas, 1);
 
     connect(addButton, &QPushButton::clicked, this, [this]() {
         Shape::Type type = static_cast<Shape::Type>(
@@ -56,7 +56,7 @@ void ShapesCollection::setupUI() {
     connect(m_canvas, &ShapeCanvas::activeShapeChanged,
             this, &ShapesCollection::updateStatusBar);
 
-    setWindowTitle("Lab3 - Shapes Collection (7.1)");
+    setWindowTitle("Lab3 - Shapes Collection (7.2 GraphicsView)");
     resize(600, 500);
 }
 
@@ -68,12 +68,13 @@ void ShapesCollection::updateStatusBar(Shape* shape) {
         return;
     }
 
-    QRect rect = shape->boundingRect();
+    QPointF pos = shape->pos();
+    QRect rect = shape->rect();
     QColor color = shape->color();
 
     m_coordsLabel->setText(QString("Координаты: (%1, %2)")
-        .arg(rect.x())
-        .arg(rect.y()));
+        .arg((int)pos.x())
+        .arg((int)pos.y()));
 
     m_colorLabel->setText(QString("Цвет: RGB(%1, %2, %3)")
         .arg(color.red())

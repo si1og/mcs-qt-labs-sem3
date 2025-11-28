@@ -1,37 +1,42 @@
 #include "shapecanvas.h"
+#include "shapes.h"
 #include <QRandomGenerator>
-#include <algorithm>
 
-ShapeCanvas::ShapeCanvas(QWidget* parent) : QWidget(parent) {
+ShapeCanvas::ShapeCanvas(QWidget* parent) : QGraphicsView(parent) {
+    m_scene = new QGraphicsScene(this);
+    m_scene->setSceneRect(0, 0, 400, 300);
+    setScene(m_scene);
+
+    setRenderHint(QPainter::Antialiasing);
     setMinimumSize(400, 300);
-    setMouseTracking(true);
+    setBackgroundBrush(Qt::white);
 }
 
-void ShapeCanvas::addShape(Shape::Type type) {
+void ShapeCanvas::addShape(::Shape::Type type) {
     QRandomGenerator* rng = QRandomGenerator::global();
 
     int w = rng->bounded(60, 120);
     int h = rng->bounded(60, 120);
-    int x = rng->bounded(0, width() - w);
-    int y = rng->bounded(0, height() - h);
+    int x = rng->bounded(0, (int)m_scene->sceneRect().width() - w);
+    int y = rng->bounded(0, (int)m_scene->sceneRect().height() - h);
 
-    QRect rect(x, y, w, h);
+    QRect rect(0, 0, w, h);
 
     QColor color(rng->bounded(50, 100),
                  rng->bounded(50, 100),
                  rng->bounded(50, 100));
 
-    std::unique_ptr<Shape> shape;
+    ::Shape* shape = nullptr;
 
     switch (type) {
-        case Shape::Rectangle:
-            shape = std::make_unique<RectangleShape>(rect, color);
+        case ::Shape::Rectangle:
+            shape = new RectangleShape(rect, color);
             break;
-        case Shape::Triangle:
-            shape = std::make_unique<TriangleShape>(rect, color);
+        case ::Shape::Triangle:
+            shape = new TriangleShape(rect, color);
             break;
-        case Shape::Ellipse:
-            shape = std::make_unique<EllipseShape>(rect, color);
+        case ::Shape::Ellipse:
+            shape = new EllipseShape(rect, color);
             break;
     }
 
@@ -39,50 +44,33 @@ void ShapeCanvas::addShape(Shape::Type type) {
         m_activeShape->setActive(false);
     }
 
+    shape->setPos(x, y);
     shape->setActive(true);
-    m_activeShape = shape.get();
-    emit activeShapeChanged(m_activeShape);
+    m_activeShape = shape;
 
-    m_shapes.push_back(std::move(shape));
-    update();
+    m_scene->addItem(shape);
+
+    emit activeShapeChanged(m_activeShape);
 }
 
 void ShapeCanvas::removeActiveShape() {
     if (!m_activeShape) return;
 
-    auto it = std::find_if(m_shapes.begin(), m_shapes.end(),
-        [this](const std::unique_ptr<Shape>& s) {
-            return s.get() == m_activeShape;
-        });
+    m_scene->removeItem(m_activeShape);
+    delete m_activeShape;
+    m_activeShape = nullptr;
 
-    if (it != m_shapes.end()) {
-        m_shapes.erase(it);
-        m_activeShape = nullptr;
-    }
-
-    emit activeShapeChanged(m_activeShape);
-    update();
+    emit activeShapeChanged(nullptr);
 }
 
 bool ShapeCanvas::hasActiveShape() const {
     return m_activeShape != nullptr;
 }
 
-void ShapeCanvas::paintEvent(QPaintEvent* event) {
-    Q_UNUSED(event);
-
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-
-    for (const auto& shape : m_shapes) {
-        shape->draw(painter);
-    }
-}
-
 void ShapeCanvas::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
         QPoint pos = event->pos();
-        Shape* clickedShape = shapeAt(pos);
+        ::Shape* clickedShape = shapeAt(pos);
 
         if (m_activeShape) {
             m_activeShape->setActive(false);
@@ -92,28 +80,22 @@ void ShapeCanvas::mousePressEvent(QMouseEvent* event) {
             clickedShape->setActive(true);
             m_activeShape = clickedShape;
             bringToFront(clickedShape);
-
-            m_lastMousePos = pos;
             m_dragging = true;
         } else {
             m_activeShape = nullptr;
         }
 
         emit activeShapeChanged(m_activeShape);
-        update();
     }
+
+    QGraphicsView::mousePressEvent(event);
 }
 
 void ShapeCanvas::mouseMoveEvent(QMouseEvent* event) {
+    QGraphicsView::mouseMoveEvent(event);
+
     if (m_dragging && m_activeShape) {
-        QPoint pos = event->pos();
-        QPoint delta = pos - m_lastMousePos;
-
-        m_activeShape->move(delta);
-        m_lastMousePos = pos;
-
         emit activeShapeChanged(m_activeShape);
-        update();
     }
 }
 
@@ -121,28 +103,22 @@ void ShapeCanvas::mouseReleaseEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
         m_dragging = false;
     }
+
+    QGraphicsView::mouseReleaseEvent(event);
 }
 
-Shape* ShapeCanvas::shapeAt(const QPoint& pos) {
-    for (auto it = m_shapes.rbegin(); it != m_shapes.rend(); ++it) {
-        if ((*it)->contains(pos)) {
-            return it->get();
+::Shape* ShapeCanvas::shapeAt(const QPoint& pos) {
+    QPointF scenePos = mapToScene(pos);
+    QGraphicsItem* item = m_scene->itemAt(scenePos, QTransform());
+    return dynamic_cast<::Shape*>(item);
+}
+
+void ShapeCanvas::bringToFront(::Shape* shape) {
+    qreal maxZ = 0;
+    for (QGraphicsItem* item : m_scene->items()) {
+        if (item->zValue() > maxZ) {
+            maxZ = item->zValue();
         }
     }
-    return nullptr;
-}
-
-void ShapeCanvas::bringToFront(Shape* shape) {
-    auto it = std::find_if(m_shapes.begin(), m_shapes.end(),
-        [shape](const std::unique_ptr<Shape>& s) {
-            return s.get() == shape;
-        });
-
-    if (it != m_shapes.end() && it != m_shapes.end() - 1) {
-        std::unique_ptr<Shape> temp = std::move(*it);
-        m_shapes.erase(it);
-        m_shapes.push_back(std::move(temp));
-        m_activeShape = m_shapes.back().get();
-        emit activeShapeChanged(m_activeShape);
-    }
+    shape->setZValue(maxZ + 1);
 }
