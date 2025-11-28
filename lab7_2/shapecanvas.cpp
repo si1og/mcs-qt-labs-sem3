@@ -65,7 +65,17 @@ void ShapeCanvas::removeActiveShape() {
     delete m_activeShape;
     m_activeShape = nullptr;
 
-    emit activeShapeChanged(nullptr);
+    QList<QGraphicsItem*> items = m_scene->items(Qt::DescendingOrder);
+
+    if (items.size() > 0) {
+        ::Shape* shape = dynamic_cast<::Shape*>(items.last());
+        if (shape) {
+            shape->setActive(true);
+            m_activeShape = shape;
+        }
+    }
+
+    emit activeShapeChanged(m_activeShape);
 }
 
 bool ShapeCanvas::hasActiveShape() const {
