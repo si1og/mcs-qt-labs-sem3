@@ -1,9 +1,0 @@
-/Users/ilyasemenov/politech/mcs-qt-labs-sem3/lab7_1/build/CMakeFiles/main.dir
-/Users/ilyasemenov/politech/mcs-qt-labs-sem3/lab7_1/build/CMakeFiles/edit_cache.dir
-/Users/ilyasemenov/politech/mcs-qt-labs-sem3/lab7_1/build/CMakeFiles/rebuild_cache.dir
-/Users/ilyasemenov/politech/mcs-qt-labs-sem3/lab7_1/build/CMakeFiles/list_install_components.dir
-/Users/ilyasemenov/politech/mcs-qt-labs-sem3/lab7_1/build/CMakeFiles/install.dir
-/Users/ilyasemenov/politech/mcs-qt-labs-sem3/lab7_1/build/CMakeFiles/install/local.dir
-/Users/ilyasemenov/politech/mcs-qt-labs-sem3/lab7_1/build/CMakeFiles/install/strip.dir
-/Users/ilyasemenov/politech/mcs-qt-labs-sem3/lab7_1/build/CMakeFiles/main_autogen_timestamp_deps.dir
-/Users/ilyasemenov/politech/mcs-qt-labs-sem3/lab7_1/build/CMakeFiles/main_autogen.dir
