@@ -4,7 +4,6 @@
 
 ShapeCanvas::ShapeCanvas(QWidget* parent) : QWidget(parent) {
     setMinimumSize(400, 300);
-    setStyleSheet("background-color: white; border: 1px solid gray;");
     setMouseTracking(true);
 }
 

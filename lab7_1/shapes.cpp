@@ -24,7 +24,7 @@ void RectangleShape::draw(QPainter& painter) const {
     painter.setBrush(m_color);
 
     if (m_active) {
-        painter.setPen(QPen(Qt::black, 3));
+        painter.setPen(QPen(QColor("#006e9c"), 3));
     } else {
         painter.setPen(QPen(Qt::black, 1));
     }
@@ -40,7 +40,7 @@ void TriangleShape::draw(QPainter& painter) const {
     painter.setBrush(m_color);
 
     if (m_active) {
-        painter.setPen(QPen(Qt::black, 3));
+        painter.setPen(QPen(QColor("#006e9c"), 3));
     } else {
         painter.setPen(QPen(Qt::black, 1));
     }
@@ -61,7 +61,7 @@ void EllipseShape::draw(QPainter& painter) const {
     painter.setBrush(m_color);
 
     if (m_active) {
-        painter.setPen(QPen(Qt::black, 3));
+        painter.setPen(QPen(QColor("#006e9c"), 3));
     } else {
         painter.setPen(QPen(Qt::black, 1));
     }
