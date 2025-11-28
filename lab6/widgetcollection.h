@@ -19,11 +19,17 @@ public slots:
     }
 };
 
+struct Connection {
+    QWidget* sender;
+    QWidget* receiver;
+};
+
 class WidgetCollection : public QWidget {
     Q_OBJECT
 private:
     std::vector<QWidget*> widgets;
     std::vector<QCheckBox*> checkboxes;
+    std::vector<Connection> activeConnections;  // Список активных связей
     QVBoxLayout* widgetsLayout;
     QComboBox* typeSelector;
     int widgetCounter = 0;
@@ -55,5 +61,6 @@ private:
     std::vector<QWidget*> getCheckedWidgets();
     void onCheckboxChanged();
     void addWidget();
+    void printConnections();
     void debugConnections();
 };
