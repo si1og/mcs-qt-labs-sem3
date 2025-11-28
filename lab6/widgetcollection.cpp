@@ -37,12 +37,10 @@ void WidgetCollection::setupUI() {
 
     mainLayout->addLayout(controlLayout);
 
-
     // виджеты
     widgetsLayout = new QVBoxLayout();
     mainLayout->addLayout(widgetsLayout);
     mainLayout->addStretch();
-
 
     connect(addButton, &QPushButton::clicked, this, &WidgetCollection::addWidget);
     connect(connectButton, &QPushButton::clicked, this, &WidgetCollection::connectAll);
@@ -60,15 +58,12 @@ void WidgetCollection::addWidget() {
     widgetCounter++;
 
     QHBoxLayout* widgetRow = new QHBoxLayout();
-
     widgetRow->addWidget(checkbox);
 
-    // Создание виджета в зависимости от типа
-    // %1 - это аргумент, который передается в функцию QString::arg()
     if (type == "QLabel") {
         ChainableLabel* label = new ChainableLabel(
-                    QString("Label #%1: 0").arg(widgetCounter), this
-                );
+            QString("Label #%1: 0").arg(widgetCounter), this
+        );
         label->setStyleSheet("QLabel { border: 1px solid gray; padding: 5px; }");
         newWidget = label;
         widgetRow->addWidget(label);
@@ -102,15 +97,7 @@ void WidgetCollection::addWidget() {
         widgets.push_back(newWidget);
         checkboxes.push_back(checkbox);
 
-        connect(checkbox, &QCheckBox::toggled, this, [this, checkbox](bool checked) {
-            if (checked) {
-                // Если пытаются поставить галочку, сразу убираем её
-                // checkbox->setChecked(false);
-            } else {
-                // Если отжимают галочку, удаляем все связи этого виджета
-                // disconnectWidget(newWidget);
-            }
-        });
+        connect(checkbox, &QCheckBox::toggled, this, &WidgetCollection::onCheckboxChanged);
 
         widgetRow->setStretch(1, 1);
         widgetsLayout->addLayout(widgetRow);
@@ -120,27 +107,71 @@ void WidgetCollection::addWidget() {
     }
 }
 
-void WidgetCollection::connectAll() {
-    qDebug() << "\n=== соединение виджетов ===";
-    qDebug() << "всего виджетов в коллекции:" << widgets.size();
+std::vector<QWidget*> WidgetCollection::getCheckedWidgets() {
+    std::vector<QWidget*> checkedWidgets;
 
-    if (widgets.size() < 2) {
+    for (size_t i = 0; i < widgets.size() && i < checkboxes.size(); i++) {
+        if (checkboxes[i]->isChecked()) {
+            checkedWidgets.push_back(widgets[i]);
+        }
+    }
+
+    return checkedWidgets;
+}
+
+void WidgetCollection::disconnectAllWidgets() {
+    qDebug() << "\n=== отключение всех связей ===";
+
+    for (QWidget* widget : widgets) {
+        const char* signal = getSignalForWidget(widget);
+        const char* slot = getSlotForWidget(widget);
+
+        if (signal) {
+            for (QWidget* other : widgets) {
+                if (other != widget) {
+                    const char* otherSlot = getSlotForWidget(other);
+                    if (otherSlot) {
+                        QObject::disconnect(widget, signal, other, otherSlot);
+                    }
+                }
+            }
+        }
+    }
+
+    qDebug() << "все связи удалены";
+}
+
+void WidgetCollection::onCheckboxChanged() {
+    qDebug() << "\n=== чекбокс изменён, пересоединение ===";
+
+    disconnectAllWidgets();
+    std::vector<QWidget*> checkedWidgets = getCheckedWidgets();
+
+    qDebug() << "выделено виджетов:" << checkedWidgets.size();
+
+    if (checkedWidgets.size() >= 2) {
+        connectWidgetsList(checkedWidgets);
+    } else {
+        qDebug() << "недостаточно выделенных виджетов для соединения";
+    }
+}
+
+void WidgetCollection::connectWidgetsList(const std::vector<QWidget*>& widgetList) {
+    qDebug() << "\n=== соединение виджетов из списка ===";
+    qDebug() << "виджетов в списке:" << widgetList.size();
+
+    if (widgetList.size() < 2) {
         qDebug() << "недостаточно виджетов для соединения (min 2)";
         return;
     }
 
-    for (QCheckBox* cb : checkboxes) {
-        cb->setChecked(false);
-    }
-
     int connectionsCount = 0;
 
-    std::vector<QWidget*> sources;    // Первичные источники
-    std::vector<QWidget*> relays;     // Ретрансляторы
-    std::vector<QWidget*> receivers;  // Только приёмники
+    std::vector<QWidget*> sources;
+    std::vector<QWidget*> relays;
+    std::vector<QWidget*> receivers;
 
-    // Классифицируем виджеты
-    classifyWidgets(sources, relays, receivers);
+    classifyWidgets(widgetList, sources, relays, receivers);
 
     qDebug() << "первичных источников:" << sources.size();
     qDebug() << "ретрансляторов:" << relays.size();
@@ -152,9 +183,20 @@ void WidgetCollection::connectAll() {
     }
 
     connectChain(sources, relays, receivers, connectionsCount);
-    updateCheckboxes();
 
     qDebug() << "=== создано соединений:" << connectionsCount << "===\n";
+}
+
+void WidgetCollection::connectAll() {
+    qDebug() << "\n=== соединение всех виджетов ===";
+
+    for (QCheckBox* cb : checkboxes) {
+        cb->blockSignals(true);
+        cb->setChecked(true);
+        cb->blockSignals(false);
+    }
+
+    connectWidgetsList(widgets);
 }
 
 bool WidgetCollection::connectWidgets(QWidget* sender, QWidget* receiver, int& connectionsCount) {
@@ -187,36 +229,35 @@ bool WidgetCollection::connectWidgets(QWidget* sender, QWidget* receiver, int& c
 bool WidgetCollection::isPrimarySource(QWidget* widget) {
     const char* className = widget->metaObject()->className();
 
-    // Только виджеты, с которыми пользователь взаимодействует
     return (qstrcmp(className, "QSlider") == 0 ||
             qstrcmp(className, "QScrollBar") == 0 ||
             qstrcmp(className, "QSpinBox") == 0);
 }
 
 bool WidgetCollection::canRelay(QWidget* widget) {
-    // Может передавать сигнал дальше
     const char* signal = getSignalForWidget(widget);
     return (signal != nullptr);
 }
 
 bool WidgetCollection::canReceive(QWidget* widget) {
-    // Может принимать сигнал
     const char* slot = getSlotForWidget(widget);
     return (slot != nullptr);
 }
 
-void WidgetCollection::classifyWidgets(std::vector<QWidget*>& sources,
+void WidgetCollection::classifyWidgets(const std::vector<QWidget*>& widgetList,
+                                       std::vector<QWidget*>& sources,
                                        std::vector<QWidget*>& relays,
                                        std::vector<QWidget*>& receivers) {
-    for (QWidget* widget : widgets) {
+    sources.clear();
+    relays.clear();
+    receivers.clear();
+
+    for (QWidget* widget : widgetList) {
         if (isPrimarySource(widget)) {
-            // Первичный источник (QSlider, QScrollBar, QSpinBox)
             sources.push_back(widget);
         } else if (canRelay(widget)) {
-            // Ретранслятор (ChainableLabel)
             relays.push_back(widget);
         } else if (canReceive(widget)) {
-            // Только приёмник (обычный QLabel, если есть)
             receivers.push_back(widget);
         }
     }
@@ -229,6 +270,7 @@ void WidgetCollection::connectChain(const std::vector<QWidget*>& sources,
 
     if (sources.empty()) return;
 
+    // Веерное соединение источников между собой
     if (sources.size() > 1) {
         qDebug() << "\nвеерное соединение источников между собой:";
         for (size_t i = 0; i < sources.size(); i++) {
@@ -240,14 +282,22 @@ void WidgetCollection::connectChain(const std::vector<QWidget*>& sources,
         }
     }
 
+    // Собираем цепочку из ретрансляторов и получателей
     std::vector<QWidget*> chain;
-
     chain.insert(chain.end(), relays.begin(), relays.end());
     chain.insert(chain.end(), receivers.begin(), receivers.end());
 
+    if (chain.empty()) {
+        qDebug() << "нет ретрансляторов/получателей для цепочки";
+        return;
+    }
+
+    // Соединяем первый источник с началом цепочки
+    qDebug() << "\nсоединение источника с цепочкой:";
     connectWidgets(sources[0], chain[0], connectionsCount);
 
-    qDebug() << "\последовательное соединение ретрансляторов:";
+    // Последовательное соединение элементов цепочки
+    qDebug() << "\nпоследовательное соединение цепочки:";
     for (size_t i = 0; i < chain.size() - 1; i++) {
         connectWidgets(chain[i], chain[i + 1], connectionsCount);
     }
@@ -257,8 +307,8 @@ const char* WidgetCollection::getSignalForWidget(QWidget* widget) {
     const char* className = widget->metaObject()->className();
 
     if (qstrcmp(className, "ChainableLabel") == 0) {
-            return SIGNAL(valueChanged(int));
-        }
+        return SIGNAL(valueChanged(int));
+    }
 
     if (qstrcmp(className, "QSlider") == 0 ||
         qstrcmp(className, "QScrollBar") == 0 ||
@@ -273,8 +323,8 @@ const char* WidgetCollection::getSlotForWidget(QWidget* widget) {
     const char* className = widget->metaObject()->className();
 
     if (qstrcmp(className, "ChainableLabel") == 0) {
-            return SLOT(setNumAndEmit(int));
-        }
+        return SLOT(setNumAndEmit(int));
+    }
 
     if (qstrcmp(className, "QSlider") == 0 ||
         qstrcmp(className, "QScrollBar") == 0 ||
@@ -309,7 +359,6 @@ void WidgetCollection::disconnectWidget(QWidget* widget) {
     const char* signal = getSignalForWidget(widget);
     const char* slot = getSlotForWidget(widget);
 
-    // Отключаем все исходящие сигналы от этого виджета
     if (signal) {
         for (QWidget* other : widgets) {
             if (other != widget) {
@@ -323,7 +372,6 @@ void WidgetCollection::disconnectWidget(QWidget* widget) {
         }
     }
 
-    // Отключаем все входящие сигналы к этому виджету
     if (slot) {
         for (QWidget* other : widgets) {
             if (other != widget) {
@@ -349,13 +397,12 @@ void WidgetCollection::debugConnections() {
         return;
     }
 
-    int expectedConnections = widgets.size() * (widgets.size() - 1);
     int actualConnections = 0;
 
     qDebug() << "\nсоединения между виджетами:";
 
     for (size_t i = 0; i < widgets.size(); i++) {
-        QWidget* sender = widgets[i];  // Уже QWidget*, не нужно приведение
+        QWidget* sender = widgets[i];
         const char* senderClass = sender->metaObject()->className();
         const char* signal = getSignalForWidget(sender);
 
@@ -376,13 +423,7 @@ void WidgetCollection::debugConnections() {
         }
     }
 
-    if (actualConnections == expectedConnections) {
-        qDebug() << "все виджеты соединены корректно";
-    } else if (actualConnections > expectedConnections) {
-        qDebug() << "обнаружены дубликаты!";
-    }
-
-    qDebug() << "\n--- вроверка висячих виджетов ---";
+    qDebug() << "\n--- проверка висячих виджетов ---";
     int orphans = 0;
     for (QWidget* widget : widgets) {
         if (!widget->parent()) {
