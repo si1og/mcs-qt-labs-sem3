@@ -1,0 +1,697 @@
+\section{Реализация}
+
+\subsection{Структура приложения}
+
+Приложение состоит из следующих классов и структур:
+
+\begin{itemize}
+    \item \texttt{Contact}~--- структура для хранения данных контакта;
+    \item \texttt{PhoneNumber}~--- структура для хранения телефонного номера с типом;
+    \item \texttt{MainWindow}~--- главное окно приложения, наследник \texttt{QMainWindow};
+    \item \texttt{ContactDialog}~--- диалог создания и редактирования контакта, наследник \texttt{QDialog};
+    \item \texttt{Validator}~--- класс с статическими методами валидации данных;
+    \item \texttt{PhoneBookFile}~--- класс для работы с файлами, наследник \texttt{QFile}.
+\end{itemize}
+
+\subsection{Структуры данных}
+
+\subsubsection*{Структура PhoneNumber}
+
+Структура хранит телефонный номер и его тип. Тип определяется перечислением с вариантами: рабочий, домашний, мобильный.
+
+\begin{lstlisting}[language=C, caption=Структура PhoneNumber]
+структура PhoneNumber:
+    type    // тип номера (Work, Home, Mobile)
+    number  // номер как последовательность цифр
+    
+    функция typeString():
+        вернуть строковое представление типа
+    конец функции
+    
+    функция formatted():
+        если длина(number) = 11 и number начинается с "7"
+            вернуть "+X (XXX) XXX-XX-XX"
+        иначе
+            вернуть "+" + number
+    конец функции
+конец структуры
+\end{lstlisting}
+
+\subsubsection*{Структура Contact}
+
+Структура объединяет все данные контакта и предоставляет вспомогательные методы.
+
+\begin{lstlisting}[language=C, caption=Структура Contact]
+структура Contact:
+    firstName    // имя
+    lastName     // фамилия
+    middleName   // отчество
+    address      // адрес
+    birthDate    // дата рождения
+    email        // электронная почта
+    phones       // список телефонов
+    
+    функция fullName():
+        вернуть lastName + " " + firstName + " " + middleName
+    конец функции
+    
+    функция primaryPhone():
+        если phones пуст
+            вернуть ""
+        вернуть phones[0].formatted()
+    конец функции
+конец структуры
+\end{lstlisting}
+
+Для сериализации структур определены операторы потокового ввода-вывода, позволяющие использовать \texttt{QDataStream} для бинарного сохранения.
+
+\subsubsection*{Структура Result}
+
+Структура используется для возврата результата валидации из методов класса \texttt{Validator}. Содержит флаг успешности проверки, сообщение об ошибке и очищенное значение.
+
+\begin{lstlisting}[language=C, caption=Структура Result]
+структура Result:
+    valid    // флаг корректности (true/false)
+    error    // сообщение об ошибке (пустое, если valid = true)
+    cleaned  // очищенное значение после обработки
+    
+    конструктор Result(v, e, c):
+        valid := v
+        error := e
+        cleaned := c
+    конец конструктора
+конец структуры
+\end{lstlisting}
+
+Такой подход позволяет методам валидации одновременно сообщать об ошибке и возвращать нормализованное значение (например, строку без лишних пробелов или номер телефона в виде последовательности цифр).
+
+\subsection{Класс Validator}
+
+Класс содержит статические методы для проверки корректности вводимых данных. Каждый метод возвращает структуру \texttt{Result} с полями: флаг валидности, сообщение об ошибке, очищенное значение.
+
+\subsubsection*{Интерфейс класса}
+
+\begin{lstlisting}[language=C, caption=Заголовочный файл validator.h]
+класс Validator:
+    // Публичные статические методы валидации
+    статический validateName(name: QString) -> Result
+    статический validatePhone(phone: QString) -> Result
+    статический validateEmail(email: QString) -> Result
+    статический validateBirthDate(date: QDate) -> Result
+    статический validateAddress(address: QString) -> Result
+
+    // Приватные вспомогательные методы
+    приватный статический trimSpaces(str: QString) -> QString
+    приватный статический isLeapYear(year: int) -> bool
+    приватный статический daysInMonth(month: int, year: int) -> int
+конец класса
+\end{lstlisting}
+
+\begin{itemize}
+    \item \texttt{validateName}~--- проверяет ФИО на соответствие требованиям (заглавная буква, допустимые символы, отсутствие дефиса в начале/конце);
+    \item \texttt{validatePhone}~--- проверяет телефон и извлекает из него последовательность цифр;
+    \item \texttt{validateEmail}~--- проверяет формат email и удаляет пробелы;
+    \item \texttt{validateBirthDate}~--- проверяет корректность даты и что она в прошлом;
+    \item \texttt{validateAddress}~--- проверяет, что адрес не пустой, и удаляет лишние пробелы;
+    \item \texttt{trimSpaces}~--- удаляет начальные, конечные и дублирующиеся пробелы;
+    \item \texttt{isLeapYear}~--- определяет, является ли год високосным;
+    \item \texttt{daysInMonth}~--- возвращает количество дней в указанном месяце.
+\end{itemize}
+
+\subsubsection*{Валидация имени}
+
+\begin{lstlisting}[language=C, caption=Функция validateName]
+функция validateName(name):
+    cleaned := убрать_пробелы(name)
+    
+    если cleaned пуст
+        вернуть Result(false, "Поле не может быть пустым")
+    
+    если cleaned не начинается с заглавной буквы
+        вернуть Result(false, "Должно начинаться с заглавной буквы")
+    
+    если cleaned начинается с "-" или заканчивается на "-"
+        вернуть Result(false, "Не может начинаться/заканчиваться на дефис")
+    
+    если cleaned не соответствует шаблону допустимых символов
+        вернуть Result(false, "Недопустимые символы")
+    
+    вернуть Result(true, "", cleaned)
+конец функции
+\end{lstlisting}
+
+Для проверки заглавной буквы используется паттерн \verb|^\p{Lu}|, где \verb|\p{Lu}| соответствует любой заглавной букве Unicode. Для проверки допустимых символов~--- паттерн \verb|^[\p{L}\p{N}\- ]+$|, разрешающий буквы, цифры, дефис и пробел.
+
+\subsubsection*{Валидация телефона}
+
+\begin{lstlisting}[language=C, caption=Функция validatePhone]
+функция validatePhone(phone):
+    cleaned := убрать_пробелы(phone)
+    
+    если cleaned пуст
+        вернуть Result(false, "Телефон не может быть пустым")
+    
+    если cleaned не соответствует шаблону формата телефона
+        вернуть Result(false, "Недопустимые символы")
+    
+    // извлекаем только цифры
+    digitsOnly := извлечь_цифры(cleaned)
+    
+    если длина(digitsOnly) < 7
+        вернуть Result(false, "Минимум 7 цифр")
+    
+    если длина(digitsOnly) > 15
+        вернуть Result(false, "Слишком длинный номер")
+    
+    вернуть Result(true, "", digitsOnly)
+конец функции
+\end{lstlisting}
+
+Паттерн \verb|^[\+]?[\d\s\(\)\-]+$| допускает опциональный плюс в начале, цифры, пробелы, скобки и дефисы.
+
+\subsubsection*{Валидация email}
+
+\begin{lstlisting}[language=C, caption=Функция validateEmail]
+функция validateEmail(email):
+    // удаляем все пробелы
+    cleaned := удалить_все_пробелы(email)
+    
+    если cleaned пуст
+        вернуть Result(false, "Email не может быть пустым")
+    
+    если cleaned не соответствует шаблону email
+        вернуть Result(false, "Неверный формат email")
+    
+    вернуть Result(true, "", cleaned)
+конец функции
+\end{lstlisting}
+
+Паттерн email проверяет наличие имени пользователя, символа @, домена и доменной зоны минимум из двух символов.
+
+\subsubsection*{Валидация даты рождения}
+
+\begin{lstlisting}[language=C, caption=Функция validateBirthDate]
+функция validateBirthDate(date):
+    если date некорректна
+        вернуть Result(false, "Некорректная дата")
+    
+    если date >= текущая_дата()
+        вернуть Result(false, "Дата должна быть в прошлом")
+    
+    month := date.month()
+    day := date.day()
+    year := date.year()
+    
+    если month < 1 или month > 12
+        вернуть Result(false, "Месяц от 1 до 12")
+    
+    maxDays := daysInMonth(month, year)
+    если day < 1 или day > maxDays
+        вернуть Result(false, "Неверное число дней")
+    
+    вернуть Result(true, "", date.toString())
+конец функции
+
+функция daysInMonth(month, year):
+    если month в [1, 3, 5, 7, 8, 10, 12]
+        вернуть 31
+    если month в [4, 6, 9, 11]
+        вернуть 30
+    если month = 2
+        если isLeapYear(year)
+            вернуть 29
+        вернуть 28
+конец функции
+\end{lstlisting}
+
+\subsection{Класс MainWindow}
+
+Главное окно наследуется от \texttt{QMainWindow} и использует макрос \texttt{Q\_OBJECT} для поддержки сигналов и слотов.
+
+\subsubsection*{Интерфейс класса}
+
+\begin{lstlisting}[language=C, caption=Заголовочный файл mainwindow.h]
+класс MainWindow : наследует QMainWindow:
+    Q_OBJECT
+    
+    // Конструктор и деструктор
+    публичный MainWindow(parent: QWidget*)
+    публичный ~MainWindow()
+
+    // Слоты (обработчики событий)
+    приватный слот addContact()
+    приватный слот editContact()
+    приватный слот removeContact()
+    приватный слот searchContacts()
+    приватный слот sortByColumn(column: int)
+    приватный слот onSelectionChanged()
+    приватный слот exportToYaml()
+    приватный слот importFromYaml()
+
+    // Приватные методы
+    приватный setupUI()
+    приватный setupMenuBar()
+    приватный loadData()
+    приватный saveData()
+    приватный updateTable()
+    приватный updateTable(contacts: QList<Contact>)
+
+    // Поля данных
+    приватный m_table: QTableWidget*
+    приватный m_searchEdit: QLineEdit*
+    приватный m_searchFieldCombo: QComboBox*
+    приватный m_contacts: QList<Contact>
+    приватный m_dataFile: QString
+    приватный m_sortColumn: int
+    приватный m_sortOrder: Qt::SortOrder
+    приватный m_sortClickCount: int
+конец класса
+\end{lstlisting}
+
+\begin{itemize}
+    \item \texttt{MainWindow}~--- конструктор, инициализирует интерфейс и загружает данные;
+    \item \texttt{\textasciitilde MainWindow}~--- деструктор, сохраняет данные при закрытии;
+    \item \texttt{addContact}~--- открывает диалог создания нового контакта;
+    \item \texttt{editContact}~--- открывает диалог редактирования выбранного контакта;
+    \item \texttt{removeContact}~--- удаляет выбранный контакт с подтверждением;
+    \item \texttt{searchContacts}~--- фильтрует таблицу по введённому запросу;
+    \item \texttt{sortByColumn}~--- сортирует таблицу по указанному столбцу;
+    \item \texttt{onSelectionChanged}~--- включает/отключает кнопки при выборе строки;
+    \item \texttt{exportToYaml}~--- экспортирует контакты в YAML-файл;
+    \item \texttt{importFromYaml}~--- импортирует контакты из YAML-файла;
+    \item \texttt{setupUI}~--- создаёт виджеты и компоновку интерфейса;
+    \item \texttt{setupMenuBar}~--- создаёт меню приложения;
+    \item \texttt{loadData}~--- загружает контакты из файла при запуске;
+    \item \texttt{saveData}~--- сохраняет контакты в файл;
+    \item \texttt{updateTable}~--- обновляет содержимое таблицы.
+\end{itemize}
+
+\subsubsection*{Используемые виджеты Qt}
+
+\begin{itemize}
+    \item \texttt{QTableWidget}~--- таблица для отображения контактов;
+    \item \texttt{QLineEdit}~--- поле ввода для поиска;
+    \item \texttt{QComboBox}~--- выпадающий список для выбора поля поиска;
+    \item \texttt{QPushButton}~--- кнопки управления;
+    \item \texttt{QMenuBar}, \texttt{QMenu}, \texttt{QAction}~--- меню приложения.
+\end{itemize}
+
+\subsubsection*{Сигналы и слоты}
+
+Механизм сигналов и слотов Qt используется для связывания действий пользователя с методами обработки:
+
+\begin{lstlisting}[language=C, caption=Подключение сигналов и слотов]
+// кнопка "Добавить" -> метод addContact
+connect(m_addButton, clicked, this, addContact)
+
+// кнопка "Редактировать" -> метод editContact
+connect(m_editButton, clicked, this, editContact)
+
+// кнопка "Удалить" -> метод removeContact
+connect(m_removeButton, clicked, this, removeContact)
+
+// изменение текста поиска -> метод searchContacts
+connect(m_searchEdit, textChanged, this, searchContacts)
+
+// клик по заголовку столбца -> метод sortByColumn
+connect(m_table.header, sectionClicked, this, sortByColumn)
+
+// двойной клик по строке -> редактирование
+connect(m_table, doubleClicked, this, editContact)
+\end{lstlisting}
+
+\subsubsection*{Алгоритм поиска}
+
+\begin{lstlisting}[language=C, caption=Функция searchContacts]
+функция searchContacts():
+    query := в_нижний_регистр(убрать_пробелы(m_searchEdit.text()))
+    field := m_searchFieldCombo.currentData()
+    
+    если query пуст
+        updateTable(m_contacts)
+        выйти из функции
+    
+    filtered := пустой список
+    
+    для каждого contact в m_contacts
+        match := false
+        
+        выбор field
+            случай LAST_NAME:
+                match := содержит(contact.lastName, query)
+            случай FIRST_NAME:
+                match := содержит(contact.firstName, query)
+            // ... остальные поля аналогично
+        конец выбора
+        
+        если match = true
+            добавить contact в filtered
+    конец цикла
+    
+    updateTable(filtered)
+конец функции
+\end{lstlisting}
+
+\subsubsection*{Алгоритм сортировки}
+
+Реализована трёхступенчатая сортировка: первый клик~--- по возрастанию, второй~--- по убыванию, третий~--- сброс к исходному порядку.
+
+\begin{lstlisting}[language=C, caption=Функция sortByColumn]
+функция sortByColumn(column):
+    если column = m_sortColumn
+        m_sortClickCount := m_sortClickCount + 1
+        
+        если m_sortClickCount = 1
+            // второй клик - сортировка по убыванию
+            m_sortOrder := DescendingOrder
+            m_table.sortItems(column, m_sortOrder)
+            показать_индикатор(column, m_sortOrder)
+        иначе
+            // третий клик - сброс сортировки
+            m_sortColumn := -1
+            m_sortClickCount := 0
+            скрыть_индикатор()
+            searchContacts()  // восстановить исходный порядок
+    иначе
+        // новый столбец - сортировка по возрастанию
+        m_sortColumn := column
+        m_sortClickCount := 0
+        m_sortOrder := AscendingOrder
+        m_table.sortItems(column, m_sortOrder)
+        показать_индикатор(column, m_sortOrder)
+конец функции
+\end{lstlisting}
+
+\subsection{Класс ContactDialog}
+
+Диалог создания и редактирования контакта наследуется от \texttt{QDialog}.
+
+\subsubsection*{Интерфейс класса}
+
+\begin{lstlisting}[language=C, caption=Заголовочный файл createcontact.h]
+класс ContactDialog : наследует QDialog:
+    Q_OBJECT
+    
+    // Конструктор
+    публичный ContactDialog(parent: QWidget*)
+
+    // Публичные методы
+    публичный setContact(contact: Contact)
+    публичный getContact() -> Contact
+
+    // Слоты
+    приватный слот addPhone()
+    приватный слот removePhone()
+    приватный слот validate()
+
+    // Приватные методы
+    приватный setupUI()
+    приватный updatePhoneTable()
+    приватный validateAll() -> bool
+    приватный showError(label: QLabel*, error: QString)
+    приватный clearError(label: QLabel*)
+
+    // Поля ввода
+    приватный m_lastNameEdit: QLineEdit*
+    приватный m_firstNameEdit: QLineEdit*
+    приватный m_middleNameEdit: QLineEdit*
+    приватный m_addressEdit: QLineEdit*
+    приватный m_birthDateEdit: QDateEdit*
+    приватный m_emailEdit: QLineEdit*
+    приватный m_phonesTable: QTableWidget*
+    приватный m_phoneInput: QLineEdit*
+    приватный m_phoneTypeCombo: QComboBox*
+    
+    // Метки ошибок
+    приватный m_lastNameError: QLabel*
+    // ... остальные метки аналогично
+    
+    // Данные
+    приватный m_phones: QList<PhoneNumber>
+конец класса
+\end{lstlisting}
+
+\begin{itemize}
+    \item \texttt{ContactDialog}~--- конструктор, создаёт интерфейс диалога;
+    \item \texttt{setContact}~--- заполняет поля данными существующего контакта для редактирования;
+    \item \texttt{getContact}~--- собирает данные из полей и возвращает объект контакта;
+    \item \texttt{addPhone}~--- добавляет введённый телефон в список после валидации;
+    \item \texttt{removePhone}~--- удаляет выбранный телефон из списка;
+    \item \texttt{validate}~--- вызывает \texttt{validateAll} и закрывает диалог при успехе;
+    \item \texttt{setupUI}~--- создаёт все виджеты и настраивает компоновку;
+    \item \texttt{updatePhoneTable}~--- обновляет таблицу телефонов;
+    \item \texttt{validateAll}~--- проверяет все поля формы и показывает ошибки;
+    \item \texttt{showError}~--- отображает текст ошибки в метке;
+    \item \texttt{clearError}~--- очищает метку ошибки.
+\end{itemize}
+
+\subsubsection*{Используемые виджеты}
+
+\begin{itemize}
+    \item \texttt{QLineEdit}~--- поля ввода для ФИО, адреса, email, телефона;
+    \item \texttt{QDateEdit}~--- выбор даты с календарём;
+    \item \texttt{QComboBox}~--- выбор типа телефона;
+    \item \texttt{QTableWidget}~--- список добавленных телефонов;
+    \item \texttt{QLabel}~--- отображение ошибок валидации.
+\end{itemize}
+
+\subsubsection*{Алгоритм валидации формы}
+
+\begin{lstlisting}[language=C, caption=Функция validateAll]
+функция validateAll():
+    valid := true
+    
+    // проверка фамилии
+    result := Validator.validateName(m_lastNameEdit.text())
+    если result.valid = false
+        showError(m_lastNameError, result.error)
+        valid := false
+    иначе
+        clearError(m_lastNameError)
+    
+    // проверка имени
+    result := Validator.validateName(m_firstNameEdit.text())
+    если result.valid = false
+        showError(m_firstNameError, result.error)
+        valid := false
+    иначе
+        clearError(m_firstNameError)
+    
+    // отчество - необязательное поле
+    если m_middleNameEdit.text() не пуст
+        result := Validator.validateName(m_middleNameEdit.text())
+        если result.valid = false
+            showError(m_middleNameError, result.error)
+            valid := false
+    
+    // проверка адреса, даты, email аналогично...
+    
+    // минимум один телефон
+    если m_phones пуст
+        showError(m_phoneError, "Добавьте хотя бы один телефон")
+        valid := false
+    
+    вернуть valid
+конец функции
+\end{lstlisting}
+
+\subsection{Класс PhoneBookFile}
+
+Класс наследуется от \texttt{QFile} и расширяет его методами для работы с контактами.
+
+\subsubsection*{Интерфейс класса}
+
+\begin{lstlisting}[language=C, caption=Заголовочный файл phonebooktofile.h]
+класс PhoneBookFile : наследует QFile:
+    Q_OBJECT
+    
+    // Конструктор
+    публичный PhoneBookFile(fileName: QString, parent: QObject*)
+
+    // Методы работы с бинарным форматом
+    публичный loadContacts(contacts: QList<Contact>&) -> bool
+    публичный saveContacts(contacts: QList<Contact>) -> bool
+    
+    // Методы работы с YAML
+    публичный loadContactsYaml(contacts: QList<Contact>&) -> bool
+    публичный saveContactsYaml(contacts: QList<Contact>) -> bool
+    
+    // Получение ошибки
+    публичный lastError() -> QString
+
+    // Константы формата файла
+    статический FILE_MAGIC: quint32 = 0x50484F4E  // "PHON"
+    статический FILE_VERSION: quint32 = 1
+
+    // Приватные поля
+    приватный m_lastError: QString
+конец класса
+\end{lstlisting}
+
+\begin{itemize}
+    \item \texttt{PhoneBookFile}~--- конструктор, принимает имя файла;
+    \item \texttt{loadContacts}~--- загружает контакты из бинарного файла;
+    \item \texttt{saveContacts}~--- сохраняет контакты в бинарный файл;
+    \item \texttt{loadContactsYaml}~--- загружает контакты из YAML-файла;
+    \item \texttt{saveContactsYaml}~--- сохраняет контакты в YAML-файл;
+    \item \texttt{lastError}~--- возвращает текст последней ошибки;
+    \item \texttt{FILE\_MAGIC}~--- магическое число для идентификации формата файла;
+    \item \texttt{FILE\_VERSION}~--- версия формата для обеспечения совместимости.
+\end{itemize}
+
+\subsubsection*{Бинарный формат}
+
+Для бинарного хранения используется \texttt{QDataStream}. Файл начинается с <<магического>> числа и версии для проверки совместимости.
+
+\begin{lstlisting}[language=C, caption=Функция saveContacts]
+функция saveContacts(contacts):
+    если не удалось открыть файл для записи
+        m_lastError := "Не удалось открыть файл"
+        вернуть false
+    
+    stream := новый QDataStream(this)
+    
+    // заголовок файла
+    stream << FILE_MAGIC   // 0x50484F4E ("PHON")
+    stream << FILE_VERSION // 1
+    
+    // данные
+    stream << contacts
+    
+    закрыть файл
+    вернуть true
+конец функции
+\end{lstlisting}
+
+\begin{lstlisting}[language=C, caption=Функция loadContacts]
+функция loadContacts(contacts):
+    contacts.clear()
+    
+    если файл не существует
+        вернуть true  // пустой список при первом запуске
+    
+    если не удалось открыть файл для чтения
+        m_lastError := "Не удалось открыть файл"
+        вернуть false
+    
+    stream := новый QDataStream(this)
+    
+    stream >> magic
+    stream >> version
+    
+    если magic != FILE_MAGIC
+        m_lastError := "Неверный формат файла"
+        вернуть false
+    
+    если version > FILE_VERSION
+        m_lastError := "Файл от новой версии программы"
+        вернуть false
+    
+    stream >> contacts
+    
+    закрыть файл
+    вернуть true
+конец функции
+\end{lstlisting}
+
+\subsubsection*{Формат YAML}
+
+Для работы с YAML используется библиотека yaml-cpp. Каждый контакт сохраняется как словарь с вложенным списком телефонов.
+
+\begin{lstlisting}[language=C, caption=Функция saveContactsYaml]
+функция saveContactsYaml(contacts):
+    out := новый YAML::Emitter()
+    
+    out << BeginSeq
+    
+    для каждого contact в contacts
+        out << BeginMap
+        
+        out << Key << "lastName" << Value << contact.lastName
+        out << Key << "firstName" << Value << contact.firstName
+        out << Key << "middleName" << Value << contact.middleName
+        out << Key << "address" << Value << contact.address
+        out << Key << "email" << Value << contact.email
+        out << Key << "birthDate" << Value << contact.birthDate
+        
+        out << Key << "phones" << Value << BeginSeq
+        для каждого phone в contact.phones
+            out << BeginMap
+            out << Key << "type" << Value << phone.typeString()
+            out << Key << "number" << Value << phone.number
+            out << EndMap
+        конец цикла
+        out << EndSeq
+        
+        out << EndMap
+    конец цикла
+    
+    out << EndSeq
+    
+    записать out.c_str() в файл
+    вернуть true
+конец функции
+\end{lstlisting}
+
+\begin{lstlisting}[language=C, caption=Функция loadContactsYaml]
+функция loadContactsYaml(contacts):
+    contacts.clear()
+    
+    root := YAML::LoadFile(fileName())
+    
+    если root не является списком
+        m_lastError := "Ожидался список контактов"
+        вернуть false
+    
+    для каждого node в root
+        contact := новый Contact()
+        
+        если node["lastName"] существует
+            contact.lastName := node["lastName"].as<string>()
+        если node["firstName"] существует
+            contact.firstName := node["firstName"].as<string>()
+        // ... остальные поля аналогично
+        
+        если node["phones"] существует и является списком
+            для каждого phoneNode в node["phones"]
+                phone := новый PhoneNumber()
+                phone.type := разобрать_тип(phoneNode["type"])
+                phone.number := phoneNode["number"].as<string>()
+                добавить phone в contact.phones
+            конец цикла
+        
+        добавить contact в contacts
+    конец цикла
+    
+    вернуть true
+конец функции
+\end{lstlisting}
+
+\subsection{Наследование от классов Qt}
+
+\subsubsection*{MainWindow от QMainWindow}
+
+Наследование от \texttt{QMainWindow} обеспечивает:
+\begin{itemize}
+    \item готовую структуру главного окна с центральным виджетом;
+    \item поддержку меню через \texttt{menuBar()};
+    \item возможность добавления панелей инструментов и строки состояния.
+\end{itemize}
+
+\subsubsection*{ContactDialog от QDialog}
+
+Наследование от \texttt{QDialog} предоставляет:
+\begin{itemize}
+    \item модальное поведение окна;
+    \item методы \texttt{accept()} и \texttt{reject()} для закрытия с результатом;
+    \item интеграцию с \texttt{exec()} для блокирующего вызова.
+\end{itemize}
+
+\subsubsection*{PhoneBookFile от QFile}
+
+Наследование от \texttt{QFile} даёт:
+\begin{itemize}
+    \item готовые методы работы с файлами: \texttt{open()}, \texttt{close()}, \texttt{exists()};
+    \item интеграцию с \texttt{QDataStream} для бинарной сериализации;
+    \item обработку ошибок через \texttt{errorString()}.
+\end{itemize}

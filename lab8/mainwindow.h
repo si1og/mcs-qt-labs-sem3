@@ -21,6 +21,8 @@ private slots:
     void searchContacts();
     void sortByColumn(int column);
     void onSelectionChanged();
+    void exportToYaml();
+    void importFromYaml();
 
 private:
     void setupUI();
@@ -40,6 +42,7 @@ private:
     QList<Contact> m_contacts;
     QString m_dataFile;
 
-    int m_sortColumn = 0;
+    int m_sortColumn = -1;
     Qt::SortOrder m_sortOrder = Qt::AscendingOrder;
+    int m_sortClickCount = 0;
 };

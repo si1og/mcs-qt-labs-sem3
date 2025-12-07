@@ -11,6 +11,10 @@ public:
 
     bool loadContacts(QList<Contact>& contacts);
     bool saveContacts(const QList<Contact>& contacts);
+    
+    bool loadContactsYaml(QList<Contact>& contacts);
+    bool saveContactsYaml(const QList<Contact>& contacts);
+    
     QString lastError() const { return m_lastError; }
 
     static const quint32 FILE_MAGIC = 0x50484F4E;
