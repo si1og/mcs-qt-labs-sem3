@@ -1,697 +1,209 @@
-\section*{Приложение В. Заголовочный файл и реализация класса \texttt{CLIUI}, а также \texttt{main.cpp}}
-\addcontentsline{toc}{section}{Приложение В. Заголовочный файл и реализация класса \texttt{CLIUI}, а также файл \texttt{main.cpp}}
+\section*{Приложение В. Заголовочный файл и реализация класса \texttt{Validator}, а также \texttt{main.cpp}}
+\addcontentsline{toc}{section}{Приложение В. Заголовочный файл и реализация класса \texttt{Validator}, а также файл \texttt{main.cpp}}
 
 \begin{lstlisting}[language=C++, numbers=left, basicstyle=\ttfamily\scriptsize]
 //main.cpp
-#include "cliui.h"
+#include <QApplication>
+#include "mainwindow.h"
 
-int main() {
-    try {
-        CLIUI ui;
-        ui.run();
-    } catch (const std::exception& e) {
-        std::cerr << "Ошибка: " << e.what() << "\n";
-        return 1;
-    }
+int main(int argc, char *argv[]) {
+    QApplication app(argc, argv);
 
-    return 0;
+    MainWindow window;
+    window.show();
+
+    return app.exec();
 }
 
-// cliui.h
+
+// validator.h
 #pragma once
 
-#include "universe.h"
-#include "multiset.h"
-#include <map>
-#include <string>
-#include <memory>
-#include <iostream>
-#include <limits>
-#include <chrono>
+#include <QString>
+#include <QRegularExpression>
+#include <QDate>
 
-class CLIUI {
-private:
-    std::unique_ptr<Universe> universe;
-    std::map<std::string, std::unique_ptr<Multiset>> multisets;
-    bool showTimings = false;
-
-    void clearScreen();
-    void pause();
-    void printHeader(const std::string& title);
-    void printSeparator();
-    std::string inputMultisetName(const std::string& prompt);
-    Multiset* getMultiset(const std::string& name);
-
-    void showMainMenu();
-    void createUniverseMenu();
-    void createMultisetMenu();
-    void viewMultisetsMenu();
-    void operationsMenu();
-    void arithmeticOperationsMenu();
-    void compareMultisetsMenu();
-
-    void performBinaryOperation(
-        const std::string& opName,
-        Multiset (Multiset::*operation)(const Multiset&) const
-    );
-
-    void performUnaryOperation(
-        const std::string& opName,
-        Multiset (Multiset::*operation)() const
-    );
-
-    void showAllOperations();
-
-    template<typename Func>
-    auto measureTime(Func func) -> decltype(func());
-
-    template<typename Func>
-    void measureTimeVoid(Func func);
-
-    void printExecutionTime(double milliseconds);
-    void printSlowWarning(double milliseconds);
-
+class Validator {
 public:
-    CLIUI();
-    ~CLIUI();
+    struct Result {
+        bool valid;
+        QString error;
+        QString cleaned;
 
-    void run();
-    bool hasUniverse() const;
-    bool hasMultiset(const std::string& name) const;
+        Result(bool v = false, const QString& e = "", const QString& c = "")
+            : valid(v), error(e), cleaned(c) {}
+    };
+
+    static Result validateName(const QString& name);
+    static Result validatePhone(const QString& phone);
+    static Result validateEmail(const QString& email);
+    static Result validateBirthDate(const QDate& date);
+    static Result validateAddress(const QString& address);
+
+private:
+    static QString trimSpaces(const QString& str);
+    static bool isLeapYear(int year);
+    static int daysInMonth(int month, int year);
 };
 
-// cliui.cpp
-#include "cliui.h"
-#include "universe.h"
-#include <string>
+// validator.cpp
+#include "validator.h"
 
-
-CLIUI::CLIUI() {}
-
-CLIUI::~CLIUI() {}
-
-void CLIUI::clearScreen() {
-    system("clear");
+QString Validator::trimSpaces(const QString& str) {
+    return str.trimmed().simplified();
 }
 
-void CLIUI::pause() {
-    std::cout << "\nНажмите Enter для продолжения...";
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cin.get();
+bool Validator::isLeapYear(int year) {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
 }
 
-void CLIUI::printHeader(const std::string& title) {
-    std::cout << "\n╔════════════════════════════════════════════════════════╗\n";
-    std::cout << "║ " << std::left << std::setw(54) << title << "\n";
-    std::cout << "╚════════════════════════════════════════════════════════╝\n\n";
-}
-
-void CLIUI::printSeparator() {
-    std::cout << "─────────────────────────────────────────────────────────\n";
-}
-
-std::string CLIUI::inputMultisetName(const std::string& prompt) {
-    std::string name;
-    std::cout << prompt;
-    std::cin >> name;
-    return name;
-}
-
-Multiset* CLIUI::getMultiset(const std::string& name) {
-    auto it = multisets.find(name);
-    if (it == multisets.end()) {
-        return nullptr;
-    }
-    return it->second.get();
-}
-
-bool CLIUI::hasUniverse() const {
-    return universe != nullptr;
-}
-
-bool CLIUI::hasMultiset(const std::string& name) const {
-    return multisets.find(name) != multisets.end();
-}
-
-void CLIUI::run() {
-    while (true) {
-        showMainMenu();
-    }
-}
-
-void CLIUI::showMainMenu() {
-    clearScreen();
-
-    if (!hasUniverse()) {
-        std::cout << "  Универсум не создан!\n\n";
-    }
-
-    printSeparator();
-    std::cout << "Главное меню:\n";
-    printSeparator();
-
-    std::cout << "  [1] Создать универсум\n";
-    std::cout << "  [2] Создать мультимножество\n";
-    std::cout << "  [3] Просмотреть мультимножества\n";
-    std::cout << "  [4] Операции над множествами\n";
-    std::cout << "  [5] Арифметические операции\n";
-    std::cout << "  [6] Сравнить мультимножества\n";
-    std::cout << "  [7] Показать все операции (сводка)\n";
-    std::cout << "  [8] " << (showTimings ? "Скрыть" : "Показать")
-                  << " время выполнения операций\n";
-    std::cout << "  [0] Выход\n";
-
-    printSeparator();
-    std::cout << "Ваш выбор: ";
-
-    int choice;
-    if (!(std::cin >> choice)) {
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        std::cout << "\n Ошибка ввода!\n";
-        pause();
-        return;
-    }
-
-    switch (choice) {
-        case 1: createUniverseMenu(); break;
-        case 2: createMultisetMenu(); break;
-        case 3: viewMultisetsMenu(); break;
-        case 4: operationsMenu(); break;
-        case 5: arithmeticOperationsMenu(); break;
-        case 6: compareMultisetsMenu(); break;
-        case 7: showAllOperations(); break;
-        case 8:
-            showTimings = !showTimings;
-            std::cout << "\n  Отображение времени: " << (showTimings ? "включено" : "выключено") << "\n";
-            pause();
-            break;
-        case 0:
-            std::cout << "\n До свидания!\n";
-            exit(0);
+int Validator::daysInMonth(int month, int year) {
+    switch (month) {
+        case 1: case 3: case 5: case 7: case 8: case 10: case 12:
+            return 31;
+        case 4: case 6: case 9: case 11:
+            return 30;
+        case 2:
+            return isLeapYear(year) ? 29 : 28;
         default:
-            std::cout << "\n Неверный выбор!\n";
-            pause();
+            return 0;
     }
 }
 
-void CLIUI::createUniverseMenu() {
-    clearScreen();
-    printHeader("СОЗДАНИЕ УНИВЕРСУМА");
+Validator::Result Validator::validateName(const QString& name) {
+    QString cleaned = trimSpaces(name);
 
-    bool isResetUniverse = false;
+    if (cleaned.isEmpty()) {
+        return Result(false, "Поле не может быть пустым", "");
+    }
 
-    if (hasUniverse()) {
-        std::cout << "  Универсум уже существует!\n";
-        std::cout << "Создать новый? (y/n): ";
-        char confirm;
-        std::cin >> confirm;
-        if (confirm != 'y' && confirm != 'Y') {
-            return;
+    // - Фамилия, Имя или Отчество --- должны содержать только буквы
+    // и цифры различных алфавитов, а также дефис и пробел, но при этом
+    // должны начинаться только на заглавные буквы, и не могли бы
+    // оканчиваться или начинаться на дефис. Все незначимые пробелы
+    // перед и после данных должны удаляться.
+
+    QRegularExpression startsWithUpper("^\\p{Lu}");
+    if (!startsWithUpper.match(cleaned).hasMatch()) {
+        return Result(false, "Должно начинаться с заглавной буквы", cleaned);
+    }
+
+    if (cleaned.startsWith('-') || cleaned.endsWith('-')) {
+        return Result(false, "Не может начинаться или заканчиваться на дефис", cleaned);
+    }
+
+    QRegularExpression validChars("^[\\p{L}\\p{N}\\- ]+$");
+    if (!validChars.match(cleaned).hasMatch()) {
+        return Result(false, "Допустимы только буквы, цифры, дефис и пробел", cleaned);
+    }
+
+    return Result(true, "", cleaned);
+}
+
+Validator::Result Validator::validatePhone(const QString& phone) {
+    QString cleaned = trimSpaces(phone);
+
+    if (cleaned.isEmpty()) {
+        return Result(false, "Телефон не может быть пустым", "");
+    }
+
+    // - Телефон должен быть записан в международном формате,
+    // а храниться внутри как последовательность цифр.
+    // Один из вариантов записи телефона:
+    // префикс_выхода_на международную_линию код_страны код_города телефон.
+    // Пример, +7 812 1234567, 8(800)123-1212, + 38 (032) 123 11 11
+
+    QRegularExpression validFormat("^[\\+]?[\\d\\s\\(\\)\\-]+$");
+    if (!validFormat.match(cleaned).hasMatch()) {
+        return Result(false, "Недопустимые символы в номере телефона", cleaned);
+    }
+
+    QString digitsOnly;
+    for (const QChar& c : cleaned) {
+        if (c.isDigit()) {
+            digitsOnly += c;
         }
-        isResetUniverse = true;
     }
 
-    int depth, maxMult;
-
-    std::cout << "Введите разрядность кода Грея (рекомендуется до " + std::to_string(RECOMMENDED_MAX_DEPTH) + "): ";
-    if (!(std::cin >> depth) || depth < 0) {
-        std::cout << "\n Некорректная разрядность!\n";
-        pause();
-        return;
+    if (digitsOnly.length() < 7) {
+        return Result(false, "Телефон должен содержать минимум 7 цифр", digitsOnly);
     }
 
-    if (depth > 0) {
-        std::cout << "Введите максимальную кратность элементов: ";
-        if (!(std::cin >> maxMult) || maxMult < 0) {
-            std::cout << "\n Некорректная кратность!\n";
-            pause();
-            return;
-        }
-    } else {
-        maxMult = 0; // При нулевой разрядности кратность тоже 0
+    if (digitsOnly.length() > 15) {
+        return Result(false, "Телефон слишком длинный", digitsOnly);
     }
 
-    try {
-        if (isResetUniverse) {
-            universe.reset();
-            multisets.clear();
-            std::cout << " Старый универсум удалён\n\n";
-        }
-
-        measureTimeVoid([&]() {
-            universe = std::make_unique<Universe>(depth, maxMult);
-        });
-
-        universe->printTable();
-        pause();
-    } catch (const std::exception& e) {
-        std::cout << "\n Ошибка: " << e.what() << "\n";
-        pause();
-    }
+    return Result(true, "", digitsOnly);
 }
 
-void CLIUI::createMultisetMenu() {
-    clearScreen();
-    printHeader("СОЗДАНИЕ МУЛЬТИМНОЖЕСТВА");
+Validator::Result Validator::validateEmail(const QString& email) {
+    QString cleaned = email;
+    cleaned.remove(' ');
+    cleaned = cleaned.trimmed();
 
-    if (!hasUniverse()) {
-        std::cout << " Универсум не создан!\n";
-        pause();
-        return;
+    if (cleaned.isEmpty()) {
+        return Result(false, "Email не может быть пустым", "");
     }
 
-    std::string name = inputMultisetName("Введите имя мультимножества: ");
+    // - E-mail должен содержать в себе имя пользователя состоящее
+    //  из латинских букв и цифр, символ разделения пользователя
+    //  и имени домена(@), а также сам домен состоящий из латинских букв и цифр.
+    //  Все незначащие пробелы (включая пробелы перед и после символа @)
+    //  должны быть удалены.
 
-    if (hasMultiset(name)) {
-        std::cout << " Мультимножество с таким именем уже существует!\n";
-        pause();
-        return;
+    QRegularExpression emailRegex(
+        "^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    );
+
+    if (!emailRegex.match(cleaned).hasMatch()) {
+        return Result(false, "Неверный формат email", cleaned);
     }
 
-    auto ms = std::make_unique<Multiset>(*universe);
-
-    if (ms->getDepth() == 0 || ms->getMaxMultiplicity() == 0) {
-        std::cout << "  Создано пустое мультимножество\n";
-        multisets[name] = std::move(ms);
-        pause();
-        return;
-    }
-
-    std::cout << "\nВыберите способ заполнения:\n";
-    std::cout << "  [1] Вручную\n";
-    std::cout << "  [2] Автоматически (случайно)\n";
-    std::cout << "Ваш выбор: ";
-
-    int choice;
-    std::cin >> choice;
-
-    try {
-
-        if (choice == 1) {
-            int size;
-            std::cout << "Количество уникальных элементов (1-"
-                      << universe->size() << "): ";
-            std::cin >> size;
-            ms->fillManual(size);
-
-        } else if (choice == 2) {
-            measureTimeVoid([&]() {
-                ms->fillRandom();
-            });
-        } else {
-            std::cout << " Неверный выбор!\n";
-            pause();
-            return;
-        }
-
-        std::cout << "\n Мультимножество '" << name << "' создано:\n";
-        ms->printTable();
-
-        multisets[name] = std::move(ms);
-        pause();
-
-    } catch (const std::exception& e) {
-        std::cout << "\n Ошибка: " << e.what() << "\n";
-        pause();
-    }
+    return Result(true, "", cleaned);
 }
 
-void CLIUI::viewMultisetsMenu() {
-    clearScreen();
-    printHeader("ПРОСМОТР МУЛЬТИМНОЖЕСТВ");
-
-    if (multisets.empty()) {
-        std::cout << "  Мультимножества не созданы!\n";
-        pause();
-        return;
+Validator::Result Validator::validateBirthDate(const QDate& date) {
+    if (!date.isValid()) {
+        return Result(false, "Некорректная дата", "");
     }
 
-    std::cout << "Доступные мультимножества:\n\n";
+    // - Дата рождения должна быть меньше текущей даты, число месяцев в
+    // дате должно быть от 1 до 12, число дней от 1 до 31, причем должно
+    // учитываться различное число дней в месяце и високосные года.
+    // Для обработки даты как вариант можно использовать классы
+    // QDateEdit или QCalendarWidget.
 
-    for (const auto& [name, ms] : multisets) {
-        std::cout << "-> " << name << ":\n";
-        ms->printTable();
-        std::cout << "\n";
+    QDate today = QDate::currentDate();
+
+    if (date >= today) {
+        return Result(false, "Дата рождения должна быть меньше текущей даты", "");
     }
 
-    pause();
+    int year = date.year();
+    int month = date.month();
+    int day = date.day();
+
+    if (month < 1 || month > 12) {
+        return Result(false, "Месяц должен быть от 1 до 12", "");
+    }
+
+    int maxDays = daysInMonth(month, year);
+    if (day < 1 || day > maxDays) {
+        return Result(false,
+            QString("В этом месяце всего %1 дней").arg(maxDays), "");
+    }
+
+    return Result(true, "", date.toString("yyyy-MM-dd"));
 }
 
-void CLIUI::operationsMenu() {
-    clearScreen();
-    printHeader("ОПЕРАЦИИ НАД МНОЖЕСТВАМИ");
+Validator::Result Validator::validateAddress(const QString& address) {
+    QString cleaned = trimSpaces(address);
 
-    if (multisets.size() < 1) {
-        std::cout << " Создайте хотя бы одно мультимножество!\n";
-        pause();
-        return;
+    if (cleaned.isEmpty()) {
+        return Result(false, "Адрес не может быть пустым", "");
     }
 
-    std::cout << "Выберите операцию:\n";
-    std::cout << "  [1] Объединение (A ∪ B)\n";
-    std::cout << "  [2] Пересечение (A ∩ B)\n";
-    std::cout << "  [3] Разность (A \\ B)\n";
-    std::cout << "  [4] Симметрическая разность (A △ B)\n";
-    std::cout << "  [5] Дополнение (A')\n";
-    std::cout << "  [0] Назад\n";
-    std::cout << "Ваш выбор: ";
-
-    int choice;
-    std::cin >> choice;
-
-    switch (choice) {
-        case 1: performBinaryOperation("Объединение", &Multiset::unionWith); break;
-        case 2: performBinaryOperation("Пересечение", &Multiset::intersectionWith); break;
-        case 3: performBinaryOperation("Разность", &Multiset::differenceWith); break;
-        case 4: performBinaryOperation("Симметрическая разность", &Multiset::symmetricDifferenceWith); break;
-        case 5: performUnaryOperation("Дополнение", &Multiset::complement); break;
-        case 0: return;
-        default:
-            std::cout << " Неверный выбор!\n";
-            pause();
-    }
-}
-
-void CLIUI::arithmeticOperationsMenu() {
-    clearScreen();
-    printHeader("АРИФМЕТИЧЕСКИЕ ОПЕРАЦИИ");
-
-    if (multisets.size() < 1) {
-        std::cout << " Создайте хотя бы одно мультимножество!\n";
-        pause();
-        return;
-    }
-
-    std::cout << "Выберите операцию:\n";
-    std::cout << "  [1] Сумма (A + B)\n";
-    std::cout << "  [2] Разность (A - B)\n";
-    std::cout << "  [3] Произведение (A * B)\n";
-    std::cout << "  [4] Деление (A / B)\n";
-    std::cout << "  [0] Назад\n";
-    std::cout << "Ваш выбор: ";
-
-    int choice;
-    std::cin >> choice;
-
-    switch (choice) {
-        case 1: performBinaryOperation("Арифметическая сумма", &Multiset::arithmeticSum); break;
-        case 2: performBinaryOperation("Арифметическая разность", &Multiset::arithmeticDifference); break;
-        case 3: performBinaryOperation("Арифметическое произведение", &Multiset::arithmeticProduct); break;
-        case 4: performBinaryOperation("Арифметическое деление", &Multiset::arithmeticDivision); break;
-        case 0: return;
-        default:
-            std::cout << " Неверный выбор!\n";
-            pause();
-    }
-}
-
-void CLIUI::performBinaryOperation(
-    const std::string& opName,
-    Multiset (Multiset::*operation)(const Multiset&) const
-) {
-    if (multisets.size() < 2) {
-        std::cout << "\n Нужно минимум два мультимножества!\n";
-        pause();
-        return;
-    }
-
-    std::cout << "\nДоступные мультимножества: ";
-    for (const auto& [name, _] : multisets) {
-        std::cout << name << " ";
-    }
-    std::cout << "\n";
-
-    std::string nameA = inputMultisetName("\nПервое мультимножество (A): ");
-    std::string nameB = inputMultisetName("Второе мультимножество (B): ");
-
-    Multiset* A = getMultiset(nameA);
-    Multiset* B = getMultiset(nameB);
-
-    if (!A || !B) {
-        std::cout << " Одно из мультимножеств не найдено!\n";
-        pause();
-        return;
-    }
-
-    std::cout << "\n" << opName << ":\n\n";
-
-    std::cout << "A = \n";
-    A->printTable();
-    std::cout << "\nB = \n";
-    B->printTable();
-
-    Multiset result = measureTime([&]() {
-        return (A->*operation)(*B);
-    });
-
-    std::cout << "\nРезультат:\n";
-    result.printTable();
-
-    std::cout << "\nСохранить результат? (y/n): ";
-    char save;
-    std::cin >> save;
-
-    if (save == 'y' || save == 'Y') {
-        std::string resultName = inputMultisetName("Имя мультимножества для результата: ");
-        if (hasMultiset(resultName)) {
-            std::cout << "  Перезаписать существующее? (y/n): ";
-            char confirm;
-            std::cin >> confirm;
-            if (confirm != 'y' && confirm != 'Y') {
-                pause();
-                return;
-            }
-        }
-        multisets[resultName] = std::make_unique<Multiset>(result);
-        std::cout << " Результат сохранён как '" << resultName << "'\n";
-    }
-
-    pause();
-}
-
-void CLIUI::performUnaryOperation(
-    const std::string& opName,
-    Multiset (Multiset::*operation)() const
-) {
-    std::cout << "\nДоступные мультимножества: ";
-    for (const auto& [name, _] : multisets) {
-        std::cout << name << " ";
-    }
-    std::cout << "\n";
-
-    std::string nameA = inputMultisetName("\nМультимножество: ");
-    Multiset* A = getMultiset(nameA);
-
-    if (!A) {
-        std::cout << " Мультимножество не найдено!\n";
-        pause();
-        return;
-    }
-
-    std::cout << "\n" << opName << ":\n\n";
-
-    std::cout << "A = ";
-    A->printTable();
-
-    Multiset result = measureTime([&]() {
-        return (A->*operation)();
-    });
-
-    std::cout << "\nРезультат:\n";
-    result.printTable();
-
-    std::cout << "\nСохранить результат? (y/n): ";
-    char save;
-    std::cin >> save;
-
-    if (save == 'y' || save == 'Y') {
-        std::string resultName = inputMultisetName("Имя мультимножества для результата: ");
-        multisets[resultName] = std::make_unique<Multiset>(result);
-        std::cout << " Результат сохранён как '" << resultName << "'\n";
-    }
-
-    pause();
-}
-
-void CLIUI::compareMultisetsMenu() {
-    clearScreen();
-    printHeader("СРАВНЕНИЕ МУЛЬТИМНОЖЕСТВ");
-
-    if (multisets.size() < 2) {
-        std::cout << " Нужно минимум два мультимножества!\n";
-        pause();
-        return;
-    }
-
-    std::cout << "Доступные мультимножества: ";
-    for (const auto& [name, _] : multisets) {
-        std::cout << name << " ";
-    }
-    std::cout << "\n";
-
-    std::string nameA = inputMultisetName("\nПервое мультимножество: ");
-    std::string nameB = inputMultisetName("Второе мультимножество: ");
-
-    Multiset* A = getMultiset(nameA);
-    Multiset* B = getMultiset(nameB);
-
-    if (!A || !B) {
-        std::cout << " Одно из мультимножеств не найдено!\n";
-        pause();
-        return;
-    }
-
-    std::cout << "\n";
-    A->printTable();
-    std::cout << "\n";
-    B->printTable();
-
-    std::cout << "\nРезультат сравнения:\n";
-    if (*A == *B) {
-        std::cout << " Мультимножества равны (A == B)\n";
-    } else {
-        std::cout << " Мультимножества не равны (A != B)\n";
-    }
-
-    pause();
-}
-
-void CLIUI::showAllOperations() {
-    clearScreen();
-    printHeader("СВОДКА ВСЕХ ОПЕРАЦИЙ");
-
-    if (multisets.size() < 2) {
-        std::cout << " Нужно минимум два мультимножества!\n";
-        pause();
-        return;
-    }
-
-    std::cout << "Доступные мультимножества: ";
-    for (const auto& [name, _] : multisets) {
-        std::cout << name << " ";
-    }
-    std::cout << "\n";
-
-    std::string nameA = inputMultisetName("\nПервое мультимножество (A): ");
-    std::string nameB = inputMultisetName("Второе мультимножество (B): ");
-
-    Multiset* A = getMultiset(nameA);
-    Multiset* B = getMultiset(nameB);
-
-    if (!A || !B) {
-        std::cout << " Одно из мультимножеств не найдено!\n";
-        pause();
-        return;
-    }
-
-    clearScreen();
-    printHeader("РЕЗУЛЬТАТЫ ВСЕХ ОПЕРАЦИЙ");
-
-    std::cout << "A = \n";
-    A->printTable();
-    std::cout << "\nB = \n";
-    B->printTable();
-
-    printSeparator();
-    std::cout << "Операции над мультимножествами:\n";
-    printSeparator();
-
-    std::cout << "\n1. Объединение (A ∪ B):\n";
-    measureTime([&]{ return A->unionWith(*B); }).printTable();
-
-    std::cout << "\n2. Пересечение (A ∩ B):\n";
-    measureTime([&] { return A->intersectionWith(*B); }).printTable();
-
-    std::cout << "\n3. Разность (A \\ B):\n";
-    measureTime([&] { return A->differenceWith(*B); }).printTable();
-
-    std::cout << "\n4. Разность (B \\ A):\n";
-    measureTime([&] { return B->differenceWith(*A); }).printTable();
-
-    std::cout << "\n5. Симметрическая разность (A △ B):\n";
-    measureTime([&] { return A->symmetricDifferenceWith(*B); }).printTable();
-
-    std::cout << "\n6. Дополнение A':\n";
-    measureTime([&] { return A->complement(); }).printTable();
-
-    std::cout << "\n7. Дополнение B':\n";
-    measureTime([&] { return B->complement(); }).printTable();
-
-    printSeparator();
-    std::cout << "Арифметические операции:\n";
-    printSeparator();
-
-    std::cout << "\n8. Сумма (A + B):\n";
-    measureTime([&] { return A->arithmeticSum(*B); }).printTable();
-
-    std::cout << "\n9. Разность (A - B):\n";
-    measureTime([&] { return A->arithmeticDifference(*B); }).printTable();
-
-    std::cout << "\n10. Произведение (A * B):\n";
-    measureTime([&] { return A->arithmeticProduct(*B); }).printTable();
-
-    std::cout << "\n11. Деление (A / B):\n";
-    measureTime([&] { return A->arithmeticDivision(*B); }).printTable();
-
-    printSeparator();
-
-    pause();
-}
-
-template<typename Func>
-auto CLIUI::measureTime(Func func) -> decltype(func()) {
-    auto start = std::chrono::high_resolution_clock::now();
-    auto result = func();
-    auto end = std::chrono::high_resolution_clock::now();
-
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    double milliseconds = duration.count() / 1000.0;
-
-    printSlowWarning(milliseconds);
-
-    if (showTimings) {
-        printExecutionTime(milliseconds);
-    }
-
-    return result;
-}
-
-template<typename Func>
-void CLIUI::measureTimeVoid(Func func) {
-    auto start = std::chrono::high_resolution_clock::now();
-    func();
-    auto end = std::chrono::high_resolution_clock::now();
-
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    double milliseconds = duration.count() / 1000.0;
-
-    printSlowWarning(milliseconds);
-
-    if (showTimings) {
-        printExecutionTime(milliseconds);
-    }
-}
-
-void CLIUI::printSlowWarning(double milliseconds) {
-    if (milliseconds >= 1000.0) {
-        std::cout << "\n  ⚠️  ПРЕДУПРЕЖДЕНИЕ: операция заняла более 1 секунды ("
-                  << std::fixed << std::setprecision(2) << (milliseconds / 1000.0) << " с)\n";
-    }
-}
-
-void CLIUI::printExecutionTime(double milliseconds) {
-    std::cout << "\n  Время выполнения: ";
-
-    if (milliseconds < 1.0) {
-        std::cout << (milliseconds * 1000.0) << " мкс";
-    } else if (milliseconds < 1000.0) {
-        std::cout << std::fixed << std::setprecision(3) << milliseconds << " мс";
-    } else {
-        std::cout << std::fixed << std::setprecision(3) << (milliseconds / 1000.0) << " с";
-    }
-
-    std::cout << "\n";
+    return Result(true, "", cleaned);
 }
 
 \end{lstlisting}

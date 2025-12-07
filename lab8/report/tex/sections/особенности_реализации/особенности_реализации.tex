@@ -427,7 +427,7 @@ connect(m_table, doubleClicked, this, editContact)
     // ... остальные метки аналогично
     
     // Данные
-    приватный m_phones: QList<PhoneNumber>
+    приватный m_phones: QList[PhoneNumber]
 конец класса
 \end{lstlisting}
 
@@ -509,12 +509,12 @@ connect(m_table, doubleClicked, this, editContact)
     публичный PhoneBookFile(fileName: QString, parent: QObject*)
 
     // Методы работы с бинарным форматом
-    публичный loadContacts(contacts: QList<Contact>&) -> bool
-    публичный saveContacts(contacts: QList<Contact>) -> bool
+    публичный loadContacts(contacts: QList[Contact]) -> bool
+    публичный saveContacts(contacts: QList[Contact]) -> bool
     
     // Методы работы с YAML
-    публичный loadContactsYaml(contacts: QList<Contact>&) -> bool
-    публичный saveContactsYaml(contacts: QList<Contact>) -> bool
+    публичный loadContactsYaml(contacts: QList[Contact]) -> bool
+    публичный saveContactsYaml(contacts: QList[Contact]) -> bool
     
     // Получение ошибки
     публичный lastError() -> QString
@@ -552,11 +552,11 @@ connect(m_table, doubleClicked, this, editContact)
     stream := новый QDataStream(this)
     
     // заголовок файла
-    stream << FILE_MAGIC   // 0x50484F4E ("PHON")
-    stream << FILE_VERSION // 1
+    записать в stream значение FILE_MAGIC   // 0x50484F4E ("PHON")
+    записать в stream значение FILE_VERSION // 1
     
     // данные
-    stream << contacts
+    записать в stream значение contacts
     
     закрыть файл
     вернуть true
@@ -576,8 +576,8 @@ connect(m_table, doubleClicked, this, editContact)
     
     stream := новый QDataStream(this)
     
-    stream >> magic
-    stream >> version
+    прочитать из stream в magic
+    прочитать из stream в version
     
     если magic != FILE_MAGIC
         m_lastError := "Неверный формат файла"
@@ -587,7 +587,7 @@ connect(m_table, doubleClicked, this, editContact)
         m_lastError := "Файл от новой версии программы"
         вернуть false
     
-    stream >> contacts
+    прочитать из stream в contacts
     
     закрыть файл
     вернуть true
@@ -602,31 +602,31 @@ connect(m_table, doubleClicked, this, editContact)
 функция saveContactsYaml(contacts):
     out := новый YAML::Emitter()
     
-    out << BeginSeq
+    начать последовательность в out
     
     для каждого contact в contacts
-        out << BeginMap
+        начать словарь в out
         
-        out << Key << "lastName" << Value << contact.lastName
-        out << Key << "firstName" << Value << contact.firstName
-        out << Key << "middleName" << Value << contact.middleName
-        out << Key << "address" << Value << contact.address
-        out << Key << "email" << Value << contact.email
-        out << Key << "birthDate" << Value << contact.birthDate
+        записать ключ "lastName" со значением contact.lastName
+        записать ключ "firstName" со значением contact.firstName
+        записать ключ "middleName" со значением contact.middleName
+        записать ключ "address" со значением contact.address
+        записать ключ "email" со значением contact.email
+        записать ключ "birthDate" со значением contact.birthDate
         
-        out << Key << "phones" << Value << BeginSeq
+        записать ключ "phones" и начать вложенную последовательность
         для каждого phone в contact.phones
-            out << BeginMap
-            out << Key << "type" << Value << phone.typeString()
-            out << Key << "number" << Value << phone.number
-            out << EndMap
+            начать словарь
+            записать ключ "type" со значением phone.typeString()
+            записать ключ "number" со значением phone.number
+            закончить словарь
         конец цикла
-        out << EndSeq
+        закончить последовательность
         
-        out << EndMap
+        закончить словарь
     конец цикла
     
-    out << EndSeq
+    закончить последовательность
     
     записать out.c_str() в файл
     вернуть true
@@ -647,16 +647,16 @@ connect(m_table, doubleClicked, this, editContact)
         contact := новый Contact()
         
         если node["lastName"] существует
-            contact.lastName := node["lastName"].as<string>()
+            contact.lastName := прочитать node["lastName"] как строку
         если node["firstName"] существует
-            contact.firstName := node["firstName"].as<string>()
+            contact.firstName := прочитать node["firstName"] как строку
         // ... остальные поля аналогично
         
         если node["phones"] существует и является списком
             для каждого phoneNode в node["phones"]
                 phone := новый PhoneNumber()
-                phone.type := разобрать_тип(phoneNode["type"])
-                phone.number := phoneNode["number"].as<string>()
+                phone.type := разобрать_тип(прочитать phoneNode["type"])
+                phone.number := прочитать phoneNode["number"] как строку
                 добавить phone в contact.phones
             конец цикла
         
