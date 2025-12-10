@@ -33,7 +33,7 @@ public:
     virtual ~Shape();
     
     virtual void draw(QPainter& painter) const = 0;
-    virtual bool contains(const QPointF& point) const override;
+    virtual bool contains(const QPointF& point) const;
     
     void setActive(bool active) { m_active = active; update(); }
     bool isActive() const { return m_active; }

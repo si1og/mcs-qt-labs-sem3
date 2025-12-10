@@ -7,7 +7,6 @@
 #include "shapes.h"
 #include "shapesdatabase.h"
 
-// Forward declaration
 class Shape;
 
 class ShapeCanvas : public QGraphicsView {
@@ -16,7 +15,7 @@ class ShapeCanvas : public QGraphicsView {
 public:
     explicit ShapeCanvas(ShapesDatabase* db, QWidget* parent = nullptr);
     
-    void addShape(::Shape::Type type, int width, int height);
+    void addShape(::Shape::Type type, int width, int height, int sides = 6);
     void removeShape(int id);
     void setShapeVisible(int id, bool visible);
     
@@ -24,6 +23,7 @@ public:
     void removeConnection(int fromId, int toId);
     
     ::Shape* getActiveShape() const { return m_activeShape; }
+    void setActiveShape(::Shape* shape) { m_activeShape = shape; }
     ::Shape* getShapeById(int id) const;
     
     void loadFromDatabase();
@@ -49,7 +49,7 @@ private:
     ShapesDatabase* m_db;
     
     QMap<int, ::Shape*> m_shapes;
-    QMap<QPair<int,int>, ConnectionLine*> m_connectionLines;
+    QMap<QPair<int, int>, ConnectionLine*> m_connectionLines;
     
     ::Shape* m_activeShape = nullptr;
     ::Shape* m_connectionStart = nullptr;

@@ -9,7 +9,7 @@ ConnectionLine::ConnectionLine(Shape* from, Shape* to)
     : m_from(from), m_to(to)
 {
     setPen(QPen(Qt::darkGray, 2, Qt::DashLine));
-    setZValue(-1); // Линии под фигурами
+    setZValue(-1);
     updatePosition();
 }
 
@@ -32,7 +32,6 @@ Shape::Shape(int id, Type type, const QRect& rect, const QColor& color)
 }
 
 Shape::~Shape() {
-    // Удаляем все связи
     for (ConnectionLine* line : m_connections) {
         Shape* other = (line->fromShape() == this) ? line->toShape() : line->fromShape();
         if (other) {
@@ -69,7 +68,6 @@ void Shape::setVisible(bool visible) {
     m_visible = visible;
     QGraphicsItem::setVisible(visible);
     
-    // Обновляем видимость связей
     for (ConnectionLine* line : m_connections) {
         Shape* other = (line->fromShape() == this) ? line->toShape() : line->fromShape();
         line->setVisible(visible && other && other->isShapeVisible());
@@ -88,7 +86,6 @@ void Shape::removeConnection(ConnectionLine* line) {
 
 QVariant Shape::itemChange(GraphicsItemChange change, const QVariant& value) {
     if (change == ItemPositionHasChanged) {
-        // Обновляем позиции всех связей
         for (ConnectionLine* line : m_connections) {
             line->updatePosition();
         }

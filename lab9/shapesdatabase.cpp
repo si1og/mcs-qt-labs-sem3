@@ -2,6 +2,7 @@
 #include <QSqlError>
 #include <QSqlRecord>
 #include <QDebug>
+#include <QFile>
 
 ShapesDatabase::ShapesDatabase(QObject* parent) 
     : QObject(parent), m_model(nullptr)
@@ -27,13 +28,11 @@ bool ShapesDatabase::initialize() {
         return false;
     }
     
-    // Создаём модель для QTableView
     m_model = new QSqlTableModel(this, m_db);
     m_model->setTable("shapes");
     m_model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     m_model->select();
     
-    // Заголовки колонок
     m_model->setHeaderData(0, Qt::Horizontal, "ID");
     m_model->setHeaderData(1, Qt::Horizontal, "Тип");
     m_model->setHeaderData(2, Qt::Horizontal, "X");
@@ -54,7 +53,19 @@ bool ShapesDatabase::initialize() {
 bool ShapesDatabase::createTables() {
     QSqlQuery query(m_db);
     
-    // Таблица фигур
+    // Проверяем тип столбца id - если TEXT, удаляем таблицы
+    query.exec("PRAGMA table_info(shapes)");
+    while (query.next()) {
+        QString colName = query.value(1).toString();
+        QString colType = query.value(2).toString();
+        if (colName == "id" && colType.toUpper() == "TEXT") {
+            // Старая схема с TEXT id - удаляем таблицы
+            query.exec("DROP TABLE IF EXISTS connections");
+            query.exec("DROP TABLE IF EXISTS shapes");
+            break;
+        }
+    }
+    
     bool success = query.exec(
         "CREATE TABLE IF NOT EXISTS shapes ("
         "   id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -78,14 +89,11 @@ bool ShapesDatabase::createTables() {
         return false;
     }
     
-    // Таблица связей
     success = query.exec(
         "CREATE TABLE IF NOT EXISTS connections ("
         "   id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "   from_id INTEGER NOT NULL,"
         "   to_id INTEGER NOT NULL,"
-        "   FOREIGN KEY (from_id) REFERENCES shapes(id) ON DELETE CASCADE,"
-        "   FOREIGN KEY (to_id) REFERENCES shapes(id) ON DELETE CASCADE,"
         "   UNIQUE(from_id, to_id)"
         ")"
     );
@@ -131,10 +139,8 @@ int ShapesDatabase::addShape(Shape::Type type, int x, int y, int width, int heig
 }
 
 bool ShapesDatabase::removeShape(int id) {
-    // Получаем тип фигуры перед удалением
     ShapeInfo info = getShapeInfo(id);
     
-    // Удаляем все связи
     removeAllConnections(id);
     
     QSqlQuery query(m_db);
@@ -191,20 +197,19 @@ bool ShapesDatabase::setShapeVisible(int id, bool visible) {
 bool ShapesDatabase::addConnection(int fromId, int toId) {
     if (fromId == toId) return false;
     
-    // Упорядочиваем ID для избежания дубликатов (1-2 и 2-1)
-    if (fromId > toId) std::swap(fromId, toId);
+    int first = qMin(fromId, toId);
+    int second = qMax(fromId, toId);
     
     QSqlQuery query(m_db);
     query.prepare("INSERT OR IGNORE INTO connections (from_id, to_id) VALUES (?, ?)");
-    query.addBindValue(fromId);
-    query.addBindValue(toId);
+    query.addBindValue(first);
+    query.addBindValue(second);
     
     if (!query.exec()) {
         qWarning() << "Ошибка добавления связи:" << query.lastError().text();
         return false;
     }
     
-    // Обновляем поле connections в shapes
     auto updateConnField = [this](int shapeId) {
         QList<int> connected = getConnectedShapes(shapeId);
         QStringList ids;
@@ -220,30 +225,30 @@ bool ShapesDatabase::addConnection(int fromId, int toId) {
         q.exec();
     };
     
-    updateConnField(fromId);
-    updateConnField(toId);
+    updateConnField(first);
+    updateConnField(second);
     
     refresh();
-    emit connectionAdded(fromId, toId);
+    emit connectionAdded(first, second);
     emit dataChanged();
     
     return true;
 }
 
 bool ShapesDatabase::removeConnection(int fromId, int toId) {
-    if (fromId > toId) std::swap(fromId, toId);
+    int first = qMin(fromId, toId);
+    int second = qMax(fromId, toId);
     
     QSqlQuery query(m_db);
     query.prepare("DELETE FROM connections WHERE from_id = ? AND to_id = ?");
-    query.addBindValue(fromId);
-    query.addBindValue(toId);
+    query.addBindValue(first);
+    query.addBindValue(second);
     
     if (!query.exec()) {
         qWarning() << "Ошибка удаления связи:" << query.lastError().text();
         return false;
     }
     
-    // Обновляем поле connections
     auto updateConnField = [this](int shapeId) {
         QList<int> connected = getConnectedShapes(shapeId);
         QStringList ids;
@@ -259,11 +264,11 @@ bool ShapesDatabase::removeConnection(int fromId, int toId) {
         q.exec();
     };
     
-    updateConnField(fromId);
-    updateConnField(toId);
+    updateConnField(first);
+    updateConnField(second);
     
     refresh();
-    emit connectionRemoved(fromId, toId);
+    emit connectionRemoved(first, second);
     emit dataChanged();
     
     return true;
@@ -282,7 +287,6 @@ bool ShapesDatabase::removeAllConnections(int shapeId) {
         return false;
     }
     
-    // Обновляем поле connections у связанных фигур
     for (int otherId : connected) {
         QList<int> otherConnected = getConnectedShapes(otherId);
         QStringList ids;
@@ -300,7 +304,6 @@ bool ShapesDatabase::removeAllConnections(int shapeId) {
         emit connectionRemoved(shapeId, otherId);
     }
     
-    // Очищаем поле у удаляемой фигуры
     query.prepare("UPDATE shapes SET connections = '' WHERE id = ?");
     query.addBindValue(shapeId);
     query.exec();
@@ -405,6 +408,48 @@ QList<ShapesDatabase::ShapeInfo> ShapesDatabase::getAllShapes() {
     }
     
     return result;
+}
+
+bool ShapesDatabase::shapeExists(int id) {
+    QSqlQuery query(m_db);
+    query.prepare("SELECT COUNT(*) FROM shapes WHERE id = ?");
+    query.addBindValue(id);
+    query.exec();
+    
+    if (query.next()) {
+        return query.value(0).toInt() > 0;
+    }
+    return false;
+}
+
+QString ShapesDatabase::getDatabasePath() const {
+    return m_db.databaseName();
+}
+
+bool ShapesDatabase::importFromFile(const QString& filePath) {
+    m_model->clear();
+    m_db.close();
+    
+    QString dbPath = "shapes.db";
+    QFile::remove(dbPath);
+    
+    if (!QFile::copy(filePath, dbPath)) {
+        m_db.open();
+        m_model->setTable("shapes");
+        m_model->select();
+        return false;
+    }
+    
+    if (!m_db.open()) {
+        return false;
+    }
+    
+    m_model->setTable("shapes");
+    m_model->setEditStrategy(QSqlTableModel::OnManualSubmit);
+    m_model->select();
+    
+    emit dataChanged();
+    return true;
 }
 
 void ShapesDatabase::updateShapeCount(Shape::Type type) {

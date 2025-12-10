@@ -17,11 +17,11 @@
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
-    
+
 public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
-    
+
 private slots:
     void onAddShape();
     void onRemoveShape();
@@ -32,46 +32,42 @@ private slots:
     void onTableSelectionChanged();
     void onFilterChanged();
     void onConnectionRequested(int fromId, int toId);
-    
+    void onTypeChanged(int index);
+    void onExportDatabase();
+    void onImportDatabase();
+
 private:
     void setupUI();
     void setupConnections();
     void updateStatusBar(::Shape* shape);
     void refreshTable();
-    
-    // База данных
+
     ShapesDatabase* m_db;
-    
-    // Canvas
     ShapeCanvas* m_canvas;
-    
-    // Панель управления
+
     QComboBox* m_typeSelector;
     QSpinBox* m_widthSpin;
     QSpinBox* m_heightSpin;
-    
-    // Таблица
+    QSpinBox* m_sidesSpin;
+    QLabel* m_sidesLabel;
+
     QTableView* m_tableView;
-    
-    // Фильтры
+
     QCheckBox* m_filterRect;
     QCheckBox* m_filterTriangle;
     QCheckBox* m_filterEllipse;
     QCheckBox* m_filterPolygon;
     QLineEdit* m_filterIdEdit;
-    
-    // Связи
+
     QPushButton* m_connectBtn;
     QPushButton* m_disconnectBtn;
     int m_connectionFirstId = -1;
-    
-    // Статус бар
+
     QLabel* m_coordsLabel;
     QLabel* m_colorLabel;
     QLabel* m_sizeLabel;
     QLabel* m_idLabel;
-    
-    // Делегаты
+
     ShapeCountDelegate* m_countDelegate;
     ShapeTypeDelegate* m_typeDelegate;
 };

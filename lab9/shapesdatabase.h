@@ -48,6 +48,11 @@ public:
     
     ShapeInfo getShapeInfo(int id);
     QList<ShapeInfo> getAllShapes();
+    bool shapeExists(int id);
+    
+    // Экспорт/Импорт
+    QString getDatabasePath() const;
+    bool importFromFile(const QString& filePath);
     
     void refresh();
     

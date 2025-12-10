@@ -10,12 +10,15 @@ ShapeCanvas::ShapeCanvas(ShapesDatabase* db, QWidget* parent)
     
     setRenderHint(QPainter::Antialiasing);
     setMinimumSize(600, 400);
-    setBackgroundBrush(QBrush(QColor(245, 245, 245)));
+    setBackgroundBrush(Qt::transparent);
+    
+    viewport()->setAutoFillBackground(false);
+    setStyleSheet("background: transparent;");
     
     setFrameShape(QFrame::StyledPanel);
 }
 
-void ShapeCanvas::addShape(::Shape::Type type, int width, int height) {
+void ShapeCanvas::addShape(::Shape::Type type, int width, int height, int sides) {
     QRandomGenerator* rng = QRandomGenerator::global();
     
     int x = rng->bounded(0, (int)m_scene->sceneRect().width() - width);
@@ -26,7 +29,7 @@ void ShapeCanvas::addShape(::Shape::Type type, int width, int height) {
                  rng->bounded(80, 200));
     
     int id = m_db->addShape(type, x, y, width, height, 
-                           color.red(), color.green(), color.blue());
+                           color.red(), color.green(), color.blue(), sides);
     
     if (id < 0) return;
     
