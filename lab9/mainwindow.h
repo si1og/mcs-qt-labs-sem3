@@ -1,48 +1,77 @@
 #pragma once
 
 #include <QMainWindow>
-#include <QTableWidget>
-#include <QLineEdit>
 #include <QComboBox>
+#include <QSpinBox>
+#include <QTableView>
+#include <QStatusBar>
+#include <QLabel>
+#include <QCheckBox>
 #include <QPushButton>
-#include <QList>
-#include "contact.h"
+#include <QGroupBox>
+#include <QLineEdit>
+
+#include "shapecanvas.h"
+#include "shapesdatabase.h"
+#include "shapedelegate.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
+    
 public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
-
+    
 private slots:
-    void addContact();
-    void editContact();
-    void removeContact();
-    void searchContacts();
-    void sortByColumn(int column);
-    void onSelectionChanged();
-    void exportToYaml();
-    void importFromYaml();
-
+    void onAddShape();
+    void onRemoveShape();
+    void onToggleVisibility();
+    void onAddConnection();
+    void onRemoveConnection();
+    void onActiveShapeChanged(::Shape* shape);
+    void onTableSelectionChanged();
+    void onFilterChanged();
+    void onConnectionRequested(int fromId, int toId);
+    
 private:
     void setupUI();
-    void setupMenuBar();
-    void loadData();
-    void saveData();
-    void updateTable();
-    void updateTable(const QList<Contact>& contacts);
-
-    QTableWidget* m_table;
-    QLineEdit* m_searchEdit;
-    QComboBox* m_searchFieldCombo;
-    QPushButton* m_addButton;
-    QPushButton* m_editButton;
-    QPushButton* m_removeButton;
-
-    QList<Contact> m_contacts;
-    QString m_dataFile;
-
-    int m_sortColumn = -1;
-    Qt::SortOrder m_sortOrder = Qt::AscendingOrder;
-    int m_sortClickCount = 0;
+    void setupConnections();
+    void updateStatusBar(::Shape* shape);
+    void refreshTable();
+    
+    // База данных
+    ShapesDatabase* m_db;
+    
+    // Canvas
+    ShapeCanvas* m_canvas;
+    
+    // Панель управления
+    QComboBox* m_typeSelector;
+    QSpinBox* m_widthSpin;
+    QSpinBox* m_heightSpin;
+    
+    // Таблица
+    QTableView* m_tableView;
+    
+    // Фильтры
+    QCheckBox* m_filterRect;
+    QCheckBox* m_filterTriangle;
+    QCheckBox* m_filterEllipse;
+    QCheckBox* m_filterPolygon;
+    QLineEdit* m_filterIdEdit;
+    
+    // Связи
+    QPushButton* m_connectBtn;
+    QPushButton* m_disconnectBtn;
+    int m_connectionFirstId = -1;
+    
+    // Статус бар
+    QLabel* m_coordsLabel;
+    QLabel* m_colorLabel;
+    QLabel* m_sizeLabel;
+    QLabel* m_idLabel;
+    
+    // Делегаты
+    ShapeCountDelegate* m_countDelegate;
+    ShapeTypeDelegate* m_typeDelegate;
 };
