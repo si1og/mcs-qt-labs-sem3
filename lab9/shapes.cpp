@@ -108,8 +108,6 @@ Shape::Type Shape::stringToType(const QString& str) {
     return Rectangle;
 }
 
-// ============== RectangleShape ==============
-
 RectangleShape::RectangleShape(int id, const QRect& rect, const QColor& color)
     : Shape(id, Rectangle, rect, color) {}
 
@@ -131,7 +129,6 @@ QPainterPath RectangleShape::shape() const {
     return path;
 }
 
-// ============== TriangleShape ==============
 
 TriangleShape::TriangleShape(int id, const QRect& rect, const QColor& color)
     : Shape(id, Triangle, rect, color) {}
@@ -167,8 +164,6 @@ QPainterPath TriangleShape::shape() const {
     return path;
 }
 
-// ============== EllipseShape ==============
-
 EllipseShape::EllipseShape(int id, const QRect& rect, const QColor& color)
     : Shape(id, Ellipse, rect, color) {}
 
@@ -193,8 +188,6 @@ QPainterPath EllipseShape::shape() const {
     path.addEllipse(m_rect);
     return path;
 }
-
-// ============== PolygonShape ==============
 
 PolygonShape::PolygonShape(int id, const QRect& rect, const QColor& color, int sides)
     : Shape(id, Polygon, rect, color), m_sides(sides) {}
