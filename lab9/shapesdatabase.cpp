@@ -53,19 +53,6 @@ bool ShapesDatabase::initialize() {
 bool ShapesDatabase::createTables() {
     QSqlQuery query(m_db);
     
-    // Проверяем тип столбца id - если TEXT, удаляем таблицы
-    query.exec("PRAGMA table_info(shapes)");
-    while (query.next()) {
-        QString colName = query.value(1).toString();
-        QString colType = query.value(2).toString();
-        if (colName == "id" && colType.toUpper() == "TEXT") {
-            // Старая схема с TEXT id - удаляем таблицы
-            query.exec("DROP TABLE IF EXISTS connections");
-            query.exec("DROP TABLE IF EXISTS shapes");
-            break;
-        }
-    }
-    
     bool success = query.exec(
         "CREATE TABLE IF NOT EXISTS shapes ("
         "   id INTEGER PRIMARY KEY AUTOINCREMENT,"

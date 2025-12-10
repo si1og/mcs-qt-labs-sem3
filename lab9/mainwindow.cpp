@@ -233,6 +233,15 @@ void MainWindow::onRemoveShape() {
 void MainWindow::onToggleVisibility() {
     QModelIndexList selected = m_tableView->selectionModel()->selectedRows();
     if (selected.isEmpty()) {
+
+        Shape* activeShape = m_canvas->getActiveShape();
+        if (activeShape) {
+            int id = activeShape->id();
+            bool visible = activeShape->isShapeVisible();
+            m_canvas->setShapeVisible(id, !visible);
+            return;
+        }
+
         QMessageBox::information(this, "Видимость",
             "Выберите фигуру в таблице для изменения видимости");
         return;
@@ -285,11 +294,6 @@ void MainWindow::onRemoveConnection() {
 
 void MainWindow::onActiveShapeChanged(::Shape* shape) {
     updateStatusBar(shape);
-
-    // Сбрасываем выбор связи если выбрали другую фигуру
-    if (m_connectionFirstId >= 0 && shape && shape->id() != m_connectionFirstId) {
-        // Можно создать связь
-    }
 }
 
 void MainWindow::onTableSelectionChanged() {
