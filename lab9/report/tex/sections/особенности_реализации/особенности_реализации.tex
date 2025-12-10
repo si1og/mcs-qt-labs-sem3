@@ -19,7 +19,7 @@
 
 Структура хранит телефонный номер и его тип. Тип определяется перечислением с вариантами: рабочий, домашний, мобильный.
 
-\begin{lstlisting}[language=C, numbers=left, caption=Структура PhoneNumber]
+\begin{lstlisting}[language=C, caption=Структура PhoneNumber]
 структура PhoneNumber:
     type    // тип номера (Work, Home, Mobile)
     number  // номер как последовательность цифр
@@ -41,7 +41,7 @@
 
 Структура объединяет все данные контакта и предоставляет вспомогательные методы.
 
-\begin{lstlisting}[language=C, numbers=left, caption=Структура Contact]
+\begin{lstlisting}[language=C, caption=Структура Contact]
 структура Contact:
     firstName    // имя
     lastName     // фамилия
@@ -69,7 +69,7 @@
 
 Структура используется для возврата результата валидации из методов класса \texttt{Validator}. Содержит флаг успешности проверки, сообщение об ошибке и очищенное значение.
 
-\begin{lstlisting}[language=C, numbers=left, caption=Структура Result]
+\begin{lstlisting}[language=C, caption=Структура Result]
 структура Result:
     valid    // флаг корректности (true/false)
     error    // сообщение об ошибке (пустое, если valid = true)
@@ -91,7 +91,7 @@
 
 \subsubsection*{Интерфейс класса}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Заголовочный файл validator.h]
+\begin{lstlisting}[language=C, caption=Заголовочный файл validator.h]
 класс Validator:
     // Публичные статические методы валидации
     статический validateName(name: QString) -> Result
@@ -120,7 +120,7 @@
 
 \subsubsection*{Валидация имени}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция validateName]
+\begin{lstlisting}[language=C, caption=Функция validateName]
 функция validateName(name):
     cleaned := убрать_пробелы(name)
     
@@ -144,7 +144,7 @@
 
 \subsubsection*{Валидация телефона}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция validatePhone]
+\begin{lstlisting}[language=C, caption=Функция validatePhone]
 функция validatePhone(phone):
     cleaned := убрать_пробелы(phone)
     
@@ -171,7 +171,7 @@
 
 \subsubsection*{Валидация email}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция validateEmail]
+\begin{lstlisting}[language=C, caption=Функция validateEmail]
 функция validateEmail(email):
     // удаляем все пробелы
     cleaned := удалить_все_пробелы(email)
@@ -190,7 +190,7 @@
 
 \subsubsection*{Валидация даты рождения}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция validateBirthDate]
+\begin{lstlisting}[language=C, caption=Функция validateBirthDate]
 функция validateBirthDate(date):
     если date некорректна
         вернуть Result(false, "Некорректная дата")
@@ -230,7 +230,7 @@
 
 \subsubsection*{Интерфейс класса}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Заголовочный файл mainwindow.h]
+\begin{lstlisting}[language=C, caption=Заголовочный файл mainwindow.h]
 класс MainWindow : наследует QMainWindow:
     Q_OBJECT
     
@@ -300,7 +300,7 @@
 
 Механизм сигналов и слотов Qt используется для связывания действий пользователя с методами обработки:
 
-\begin{lstlisting}[language=C, numbers=left, caption=Подключение сигналов и слотов]
+\begin{lstlisting}[language=C, caption=Подключение сигналов и слотов]
 // кнопка "Добавить" -> метод addContact
 connect(m_addButton, clicked, this, addContact)
 
@@ -322,7 +322,7 @@ connect(m_table, doubleClicked, this, editContact)
 
 \subsubsection*{Алгоритм поиска}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция searchContacts]
+\begin{lstlisting}[language=C, caption=Функция searchContacts]
 функция searchContacts():
     query := в_нижний_регистр(убрать_пробелы(m_searchEdit.text()))
     field := m_searchFieldCombo.currentData()
@@ -356,7 +356,7 @@ connect(m_table, doubleClicked, this, editContact)
 
 Реализована трёхступенчатая сортировка: первый клик~--- по возрастанию, второй~--- по убыванию, третий~--- сброс к исходному порядку.
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция sortByColumn]
+\begin{lstlisting}[language=C, caption=Функция sortByColumn]
 функция sortByColumn(column):
     если column = m_sortColumn
         m_sortClickCount := m_sortClickCount + 1
@@ -388,7 +388,7 @@ connect(m_table, doubleClicked, this, editContact)
 
 \subsubsection*{Интерфейс класса}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Заголовочный файл createcontact.h]
+\begin{lstlisting}[language=C, caption=Заголовочный файл createcontact.h]
 класс ContactDialog : наследует QDialog:
     Q_OBJECT
     
@@ -457,7 +457,7 @@ connect(m_table, doubleClicked, this, editContact)
 
 \subsubsection*{Алгоритм валидации формы}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция validateAll]
+\begin{lstlisting}[language=C, caption=Функция validateAll]
 функция validateAll():
     valid := true
     
@@ -501,7 +501,7 @@ connect(m_table, doubleClicked, this, editContact)
 
 \subsubsection*{Интерфейс класса}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Заголовочный файл phonebooktofile.h]
+\begin{lstlisting}[language=C, caption=Заголовочный файл phonebooktofile.h]
 класс PhoneBookFile : наследует QFile:
     Q_OBJECT
     
@@ -543,7 +543,7 @@ connect(m_table, doubleClicked, this, editContact)
 
 Для бинарного хранения используется \texttt{QDataStream}. Файл начинается с <<магического>> числа и версии для проверки совместимости.
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция saveContacts]
+\begin{lstlisting}[language=C, caption=Функция saveContacts]
 функция saveContacts(contacts):
     если не удалось открыть файл для записи
         m_lastError := "Не удалось открыть файл"
@@ -563,7 +563,7 @@ connect(m_table, doubleClicked, this, editContact)
 конец функции
 \end{lstlisting}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция loadContacts]
+\begin{lstlisting}[language=C, caption=Функция loadContacts]
 функция loadContacts(contacts):
     contacts.clear()
     
@@ -594,29 +594,11 @@ connect(m_table, doubleClicked, this, editContact)
 конец функции
 \end{lstlisting}
 
-\subsubsection*{Подключение библиотеки yaml-cpp}
-
-Для работы с форматом YAML используется библиотека yaml-cpp. Библиотека подключается к проекту через систему сборки CMake с использованием модуля \texttt{FetchContent}.
-
-Функция \texttt{FetchContent\_Declare} указывает URL GitHub-репозитория:
-
-\begin{center}
-\url{https://github.com/jbeder/yaml-cpp.git}
-\end{center}
-
-и тег версии (в данном случае \texttt{master}). 
-
-Затем \texttt{FetchContent\_MakeAvailable} автоматически загружает исходный код библиотеки, компилирует её и подготавливает к использованию. После этого библиотека подключается к целевому исполняемому файлу через \texttt{target\_link\_libraries} с указанием цели \texttt{yaml-cpp::yaml-cpp}.
-
-Библиотека yaml-cpp линкуется как статическая библиотека, что означает, что весь её код включается непосредственно в исполняемый файл приложения. Это упрощает распространение программы, так как не требуется отдельно поставлять динамическую библиотеку.
-
-Такой подход позволяет не требовать предустановки библиотеки в системе~--- она загружается и собирается автоматически при первой сборке проекта.
-
 \subsubsection*{Формат YAML}
 
-Каждый контакт сохраняется как словарь с вложенным списком телефонов.
+Для работы с YAML используется библиотека yaml-cpp. Каждый контакт сохраняется как словарь с вложенным списком телефонов.
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция saveContactsYaml]
+\begin{lstlisting}[language=C, caption=Функция saveContactsYaml]
 функция saveContactsYaml(contacts):
     out := новый YAML::Emitter()
     
@@ -651,7 +633,7 @@ connect(m_table, doubleClicked, this, editContact)
 конец функции
 \end{lstlisting}
 
-\begin{lstlisting}[language=C, numbers=left, caption=Функция loadContactsYaml]
+\begin{lstlisting}[language=C, caption=Функция loadContactsYaml]
 функция loadContactsYaml(contacts):
     contacts.clear()
     

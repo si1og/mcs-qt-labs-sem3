@@ -1,0 +1,209 @@
+\section*{Приложение В. Заголовочный файл и реализация класса \texttt{Validator}, а также \texttt{main.cpp}}
+\addcontentsline{toc}{section}{Приложение В. Заголовочный файл и реализация класса \texttt{Validator}, а также файл \texttt{main.cpp}}
+
+\begin{lstlisting}[language=C++, numbers=left, basicstyle=\ttfamily\scriptsize]
+//main.cpp
+#include <QApplication>
+#include "mainwindow.h"
+
+int main(int argc, char *argv[]) {
+    QApplication app(argc, argv);
+
+    MainWindow window;
+    window.show();
+
+    return app.exec();
+}
+
+
+// validator.h
+#pragma once
+
+#include <QString>
+#include <QRegularExpression>
+#include <QDate>
+
+class Validator {
+public:
+    struct Result {
+        bool valid;
+        QString error;
+        QString cleaned;
+
+        Result(bool v = false, const QString& e = "", const QString& c = "")
+            : valid(v), error(e), cleaned(c) {}
+    };
+
+    static Result validateName(const QString& name);
+    static Result validatePhone(const QString& phone);
+    static Result validateEmail(const QString& email);
+    static Result validateBirthDate(const QDate& date);
+    static Result validateAddress(const QString& address);
+
+private:
+    static QString trimSpaces(const QString& str);
+    static bool isLeapYear(int year);
+    static int daysInMonth(int month, int year);
+};
+
+// validator.cpp
+#include "validator.h"
+
+QString Validator::trimSpaces(const QString& str) {
+    return str.trimmed().simplified();
+}
+
+bool Validator::isLeapYear(int year) {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+int Validator::daysInMonth(int month, int year) {
+    switch (month) {
+        case 1: case 3: case 5: case 7: case 8: case 10: case 12:
+            return 31;
+        case 4: case 6: case 9: case 11:
+            return 30;
+        case 2:
+            return isLeapYear(year) ? 29 : 28;
+        default:
+            return 0;
+    }
+}
+
+Validator::Result Validator::validateName(const QString& name) {
+    QString cleaned = trimSpaces(name);
+
+    if (cleaned.isEmpty()) {
+        return Result(false, "Поле не может быть пустым", "");
+    }
+
+    // - Фамилия, Имя или Отчество --- должны содержать только буквы
+    // и цифры различных алфавитов, а также дефис и пробел, но при этом
+    // должны начинаться только на заглавные буквы, и не могли бы
+    // оканчиваться или начинаться на дефис. Все незначимые пробелы
+    // перед и после данных должны удаляться.
+
+    QRegularExpression startsWithUpper("^\\p{Lu}");
+    if (!startsWithUpper.match(cleaned).hasMatch()) {
+        return Result(false, "Должно начинаться с заглавной буквы", cleaned);
+    }
+
+    if (cleaned.startsWith('-') || cleaned.endsWith('-')) {
+        return Result(false, "Не может начинаться или заканчиваться на дефис", cleaned);
+    }
+
+    QRegularExpression validChars("^[\\p{L}\\p{N}\\- ]+$");
+    if (!validChars.match(cleaned).hasMatch()) {
+        return Result(false, "Допустимы только буквы, цифры, дефис и пробел", cleaned);
+    }
+
+    return Result(true, "", cleaned);
+}
+
+Validator::Result Validator::validatePhone(const QString& phone) {
+    QString cleaned = trimSpaces(phone);
+
+    if (cleaned.isEmpty()) {
+        return Result(false, "Телефон не может быть пустым", "");
+    }
+
+    // - Телефон должен быть записан в международном формате,
+    // а храниться внутри как последовательность цифр.
+    // Один из вариантов записи телефона:
+    // префикс_выхода_на международную_линию код_страны код_города телефон.
+    // Пример, +7 812 1234567, 8(800)123-1212, + 38 (032) 123 11 11
+
+    QRegularExpression validFormat("^[\\+]?[\\d\\s\\(\\)\\-]+$");
+    if (!validFormat.match(cleaned).hasMatch()) {
+        return Result(false, "Недопустимые символы в номере телефона", cleaned);
+    }
+
+    QString digitsOnly;
+    for (const QChar& c : cleaned) {
+        if (c.isDigit()) {
+            digitsOnly += c;
+        }
+    }
+
+    if (digitsOnly.length() < 7) {
+        return Result(false, "Телефон должен содержать минимум 7 цифр", digitsOnly);
+    }
+
+    if (digitsOnly.length() > 15) {
+        return Result(false, "Телефон слишком длинный", digitsOnly);
+    }
+
+    return Result(true, "", digitsOnly);
+}
+
+Validator::Result Validator::validateEmail(const QString& email) {
+    QString cleaned = email;
+    cleaned.remove(' ');
+    cleaned = cleaned.trimmed();
+
+    if (cleaned.isEmpty()) {
+        return Result(false, "Email не может быть пустым", "");
+    }
+
+    // - E-mail должен содержать в себе имя пользователя состоящее
+    //  из латинских букв и цифр, символ разделения пользователя
+    //  и имени домена(@), а также сам домен состоящий из латинских букв и цифр.
+    //  Все незначащие пробелы (включая пробелы перед и после символа @)
+    //  должны быть удалены.
+
+    QRegularExpression emailRegex(
+        "^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    );
+
+    if (!emailRegex.match(cleaned).hasMatch()) {
+        return Result(false, "Неверный формат email", cleaned);
+    }
+
+    return Result(true, "", cleaned);
+}
+
+Validator::Result Validator::validateBirthDate(const QDate& date) {
+    if (!date.isValid()) {
+        return Result(false, "Некорректная дата", "");
+    }
+
+    // - Дата рождения должна быть меньше текущей даты, число месяцев в
+    // дате должно быть от 1 до 12, число дней от 1 до 31, причем должно
+    // учитываться различное число дней в месяце и високосные года.
+    // Для обработки даты как вариант можно использовать классы
+    // QDateEdit или QCalendarWidget.
+
+    QDate today = QDate::currentDate();
+
+    if (date >= today) {
+        return Result(false, "Дата рождения должна быть меньше текущей даты", "");
+    }
+
+    int year = date.year();
+    int month = date.month();
+    int day = date.day();
+
+    if (month < 1 || month > 12) {
+        return Result(false, "Месяц должен быть от 1 до 12", "");
+    }
+
+    int maxDays = daysInMonth(month, year);
+    if (day < 1 || day > maxDays) {
+        return Result(false,
+            QString("В этом месяце всего %1 дней").arg(maxDays), "");
+    }
+
+    return Result(true, "", date.toString("yyyy-MM-dd"));
+}
+
+Validator::Result Validator::validateAddress(const QString& address) {
+    QString cleaned = trimSpaces(address);
+
+    if (cleaned.isEmpty()) {
+        return Result(false, "Адрес не может быть пустым", "");
+    }
+
+    return Result(true, "", cleaned);
+}
+
+\end{lstlisting}
