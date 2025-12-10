@@ -3,10 +3,6 @@
 #include <QStyledItemDelegate>
 #include <QPainter>
 
-// Делегат для отображения количества фигур иконками
-// 1-3 фигуры → 1 иконка
-// 4-10 фигур → 2 иконки
-// >10 фигур → 3 иконки
 class ShapeCountDelegate : public QStyledItemDelegate {
     Q_OBJECT
     
@@ -22,8 +18,6 @@ public:
 private:
     void drawShapeIcon(QPainter* painter, int type, const QRect& rect) const;
 };
-
-// Делегат для отображения типа фигуры иконкой
 class ShapeTypeDelegate : public QStyledItemDelegate {
     Q_OBJECT
     

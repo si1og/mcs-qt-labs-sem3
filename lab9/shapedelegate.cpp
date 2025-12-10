@@ -2,14 +2,11 @@
 #include <QtMath>
 #include <QApplication>
 
-// ============== ShapeCountDelegate ==============
-
 ShapeCountDelegate::ShapeCountDelegate(QObject* parent)
     : QStyledItemDelegate(parent) {}
 
 void ShapeCountDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
                                const QModelIndex& index) const {
-    // Рисуем фон
     if (option.state & QStyle::State_Selected) {
         painter->fillRect(option.rect, option.palette.highlight());
     } else {
@@ -22,7 +19,6 @@ void ShapeCountDelegate::paint(QPainter* painter, const QStyleOptionViewItem& op
         return;
     }
     
-    // Определяем количество иконок
     int iconCount = 1;
     if (count >= 4 && count <= 10) {
         iconCount = 2;
@@ -30,10 +26,8 @@ void ShapeCountDelegate::paint(QPainter* painter, const QStyleOptionViewItem& op
         iconCount = 3;
     }
     
-    // Получаем тип фигуры из соседнего столбца (столбец 1 = type)
     int type = index.sibling(index.row(), 1).data().toInt();
     
-    // Размер иконки
     int iconSize = qMin(option.rect.height() - 4, 20);
     int totalWidth = iconCount * iconSize + (iconCount - 1) * 2;
     int startX = option.rect.x() + (option.rect.width() - totalWidth) / 2;
@@ -90,8 +84,6 @@ void ShapeCountDelegate::drawShapeIcon(QPainter* painter, int type, const QRect&
     }
 }
 
-// ============== ShapeTypeDelegate ==============
-
 ShapeTypeDelegate::ShapeTypeDelegate(QObject* parent)
     : QStyledItemDelegate(parent) {}
 
@@ -106,7 +98,6 @@ void ShapeTypeDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
     
     int type = index.data().toInt();
     
-    // Размер иконки
     int iconSize = qMin(option.rect.height() - 4, 24);
     int startX = option.rect.x() + 5;
     int startY = option.rect.y() + (option.rect.height() - iconSize) / 2;
@@ -118,7 +109,6 @@ void ShapeTypeDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
     
     drawShapeIcon(painter, type, iconRect);
     
-    // Рисуем название типа
     QString typeName;
     switch (type) {
         case 0: typeName = "Прямоуг."; break;

@@ -3,8 +3,6 @@
 #include <QtMath>
 #include <QGraphicsScene>
 
-// ============== ConnectionLine ==============
-
 ConnectionLine::ConnectionLine(Shape* from, Shape* to)
     : m_from(from), m_to(to)
 {
@@ -20,8 +18,6 @@ void ConnectionLine::updatePosition() {
         setLine(QLineF(fromCenter, toCenter));
     }
 }
-
-// ============== Shape ==============
 
 Shape::Shape(int id, Type type, const QRect& rect, const QColor& color)
     : m_id(id), m_type(type), m_rect(rect), m_color(color)
@@ -84,6 +80,7 @@ void Shape::removeConnection(ConnectionLine* line) {
     m_connections.removeAll(line);
 }
 
+// обновляем позиции соединительных линий при перемещении фигуры
 QVariant Shape::itemChange(GraphicsItemChange change, const QVariant& value) {
     if (change == ItemPositionHasChanged) {
         for (ConnectionLine* line : m_connections) {

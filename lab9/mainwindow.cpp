@@ -90,7 +90,7 @@ void MainWindow::setupUI() {
     QGroupBox* ioGroup = new QGroupBox("База данных");
     QHBoxLayout* ioLayout = new QHBoxLayout(ioGroup);
 
-    QPushButton* exportBtn = new QPushButton("Ипортировать БД");
+    QPushButton* exportBtn = new QPushButton("Импортировать БД");
     QPushButton* importBtn = new QPushButton("Экпортировать БД");
 
     ioLayout->addWidget(exportBtn);
@@ -141,6 +141,8 @@ void MainWindow::setupUI() {
     m_tableView->setAlternatingRowColors(true);
     m_tableView->horizontalHeader()->setStretchLastSection(true);
     m_tableView->setMinimumWidth(400);
+    m_tableView->verticalHeader()->setDefaultSectionSize(30);
+    m_tableView->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
 
     m_typeDelegate = new ShapeTypeDelegate(this);
     m_countDelegate = new ShapeCountDelegate(this);
@@ -179,7 +181,7 @@ void MainWindow::setupUI() {
     statusBar()->addWidget(m_colorLabel, 1);
     statusBar()->addWidget(m_sizeLabel, 1);
 
-    setWindowTitle("Lab5 - Shapes Collection с БД");
+    setWindowTitle("Lab5");
     resize(1200, 700);
 
     connect(addBtn, &QPushButton::clicked, this, &MainWindow::onAddShape);
@@ -439,5 +441,4 @@ void MainWindow::updateStatusBar(::Shape* shape) {
 
 void MainWindow::refreshTable() {
     m_db->getModel()->select();
-    m_tableView->resizeRowsToContents();
 }
