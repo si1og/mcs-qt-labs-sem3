@@ -87,6 +87,21 @@ void MainWindow::setupUI() {
 
     mainLayout->addWidget(connectionGroup);
 
+    QGroupBox* graphGenGroup = new QGroupBox("Генерация графа по степеням вершин");
+    QHBoxLayout* graphGenLayout = new QHBoxLayout(graphGenGroup);
+
+    graphGenLayout->addWidget(new QLabel("Степени:"));
+    m_degreeSequenceEdit = new QLineEdit();
+    m_degreeSequenceEdit->setPlaceholderText("например: 2,2,2,2 или 3,3,2,2,2");
+    m_degreeSequenceEdit->setMinimumWidth(200);
+    graphGenLayout->addWidget(m_degreeSequenceEdit);
+
+    m_generateGraphBtn = new QPushButton("Сгенерировать граф");
+    graphGenLayout->addWidget(m_generateGraphBtn);
+    graphGenLayout->addStretch();
+
+    mainLayout->addWidget(graphGenGroup);
+
     QGroupBox* ioGroup = new QGroupBox("База данных");
     QHBoxLayout* ioLayout = new QHBoxLayout(ioGroup);
 
@@ -191,6 +206,7 @@ void MainWindow::setupUI() {
             this, &MainWindow::onTypeChanged);
     connect(exportBtn, &QPushButton::clicked, this, &MainWindow::onExportDatabase);
     connect(importBtn, &QPushButton::clicked, this, &MainWindow::onImportDatabase);
+    connect(m_generateGraphBtn, &QPushButton::clicked, this, &MainWindow::onGenerateGraph);
 }
 
 void MainWindow::setupConnections() {
@@ -441,4 +457,44 @@ void MainWindow::updateStatusBar(::Shape* shape) {
 
 void MainWindow::refreshTable() {
     m_db->getModel()->select();
+}
+
+void MainWindow::onGenerateGraph() {
+    QString input = m_degreeSequenceEdit->text().trimmed();
+
+    if (input.isEmpty()) {
+        QMessageBox::warning(this, "Генерация графа",
+            "Введите последовательность степеней вершин.\n"
+            "Например: 2,2,2,2 (цикл из 4 вершин) или 3,3,2,2,2 (дом)");
+        return;
+    }
+
+    QStringList parts = input.split(',', Qt::SkipEmptyParts);
+    QVector<int> degrees;
+
+    for (const QString& part : parts) {
+        bool ok;
+        int degree = part.trimmed().toInt(&ok);
+        if (!ok || degree < 0) {
+            QMessageBox::warning(this, "Ошибка ввода",
+                QString("Некорректное значение: '%1'\n"
+                        "Введите неотрицательные целые числа через запятую.").arg(part.trimmed()));
+            return;
+        }
+        degrees.append(degree);
+    }
+
+    if (degrees.isEmpty()) {
+        QMessageBox::warning(this, "Генерация графа", "Не удалось распознать степени вершин.");
+        return;
+    }
+
+    QString errorMsg;
+    if (m_canvas->generateGraphByDegreeSequence(degrees, &errorMsg)) {
+        QMessageBox::information(this, "Успешная генерация графа",
+            QString("Граф с %1 вершинами успешно сгенерирован.").arg(degrees.size()));
+        refreshTable();
+    } else {
+        QMessageBox::critical(this, "Граф не существует", errorMsg);
+    }
 }

@@ -35,6 +35,7 @@ private slots:
     void onTypeChanged(int index);
     void onExportDatabase();
     void onImportDatabase();
+    void onGenerateGraph();
 
 private:
     void setupUI();
@@ -62,6 +63,9 @@ private:
     QPushButton* m_connectBtn;
     QPushButton* m_disconnectBtn;
     int m_connectionFirstId = -1;
+
+    QLineEdit* m_degreeSequenceEdit;
+    QPushButton* m_generateGraphBtn;
 
     QLabel* m_coordsLabel;
     QLabel* m_colorLabel;
