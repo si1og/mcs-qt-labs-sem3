@@ -281,6 +281,7 @@ void ShapeCanvas::bringToFront(::Shape* shape) {
     shape->setZValue(maxZ + 1);
 }
 
+//валидация
 bool ShapeCanvas::isGraphicalSequence(QVector<int> degrees) {
     std::sort(degrees.begin(), degrees.end(), std::greater<int>());
 
@@ -294,7 +295,7 @@ bool ShapeCanvas::isGraphicalSequence(QVector<int> degrees) {
 
     if (sum % 2 != 0) return false;
 
-    // Критерий Эрдёша-Галлаи: для каждого k от 1 до n
+    // критерий Эрдёша-Галлаи: для каждого k от 1 до n
     // sum_{i=1}^{k} d_i <= k(k-1) + sum_{i=k+1}^{n} min(d_i, k)
     for (int k = 1; k <= n; ++k) {
         int leftSum = 0;
@@ -313,7 +314,6 @@ bool ShapeCanvas::isGraphicalSequence(QVector<int> degrees) {
     return true;
 }
 
-// Построение графа алгоритмом Хавеля-Хакими
 QVector<QPair<int,int>> ShapeCanvas::buildGraphHavelHakimi(QVector<int> degrees) {
     QVector<QPair<int,int>> edges;
     int n = degrees.size();
@@ -331,14 +331,12 @@ QVector<QPair<int,int>> ShapeCanvas::buildGraphHavelHakimi(QVector<int> degrees)
                       return a.first > b.first;
                   });
 
-        // Если максимальная степень = 0, закончили
         if (degreeIndex[0].first == 0) break;
 
         int d = degreeIndex[0].first;
         int v = degreeIndex[0].second;
         degreeIndex[0].first = 0;
 
-        // Соединяем с d вершинами с наибольшими степенями
         for (int i = 1; i <= d && i < degreeIndex.size(); ++i) {
             int u = degreeIndex[i].second;
             edges.append({qMin(v, u), qMax(v, u)});
@@ -350,7 +348,6 @@ QVector<QPair<int,int>> ShapeCanvas::buildGraphHavelHakimi(QVector<int> degrees)
 }
 
 bool ShapeCanvas::generateGraphByDegreeSequence(const QVector<int>& degrees, QString* errorMsg) {
-    // Проверяем, является ли последовательность графической
     if (!isGraphicalSequence(degrees)) {
         if (errorMsg) {
             *errorMsg = "Граф с такой последовательностью степеней не существует.\n"
@@ -365,10 +362,8 @@ bool ShapeCanvas::generateGraphByDegreeSequence(const QVector<int>& degrees, QSt
         return false;
     }
 
-    // Строим рёбра алгоритмом Хавеля-Хакими
     QVector<QPair<int,int>> edges = buildGraphHavelHakimi(degrees);
 
-    // Создаём n вершин (фигур)
     QVector<int> shapeIds;
     int canvasWidth = m_scene->sceneRect().width();
     int canvasHeight = m_scene->sceneRect().height();
@@ -376,7 +371,6 @@ bool ShapeCanvas::generateGraphByDegreeSequence(const QVector<int>& degrees, QSt
     QRandomGenerator* rng = QRandomGenerator::global();
 
     for (int i = 0; i < n; ++i) {
-        // Случайные координаты внутри сцены (с отступом от краёв)
         int x = rng->bounded(10, canvasWidth - 60);
         int y = rng->bounded(10, canvasHeight - 60);
 
@@ -385,7 +379,6 @@ bool ShapeCanvas::generateGraphByDegreeSequence(const QVector<int>& degrees, QSt
                      rng->bounded(80, 200),
                      rng->bounded(80, 200));
 
-        // Чередуем типы фигур для разнообразия
         ::Shape::Type type = static_cast<::Shape::Type>(i % 4);
         int sides = (type == ::Shape::Polygon) ? (3 + i % 5) : 6;
 
